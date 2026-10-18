@@ -50,7 +50,11 @@ struct SetupView: View {
 
             deniedNotice
 
-            HoldButton(title: startTitle, isEnabled: controller.canStart, onPressing: { holding = $0 }) {
+            HoldButton(title: startTitle, isEnabled: controller.canStart, onPressing: { pressing in
+                holding = pressing
+                Water.shared.pressing(pressing)
+            }) {
+                Water.shared.lock()
                 controller.startBlock()
                 close?()
             }

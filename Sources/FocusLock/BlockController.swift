@@ -19,6 +19,27 @@ struct AppItem: Codable, Identifiable, Hashable {
     var id: String { bundleID }
 }
 
+/// Something picked up from the sand on the block page. The menu shows them in its own sand.
+struct Find: Codable, Equatable {
+    enum Kind: String, Codable, CaseIterable {
+        case scallop, glass, stone, dollar, snail, star
+
+        var title: String {
+            switch self {
+            case .scallop: "Scallop shell"
+            case .glass: "Sea glass"
+            case .stone: "Smooth stone"
+            case .dollar: "Sand dollar"
+            case .snail: "Snail shell"
+            case .star: "Starfish"
+            }
+        }
+    }
+
+    var kind: Kind
+    var foundAt: Date
+}
+
 /// What the next block will cover. Running blocks keep their own copy, so editing this never loosens them.
 struct Config: Codable, Equatable {
     var sites: [SiteItem]
@@ -75,6 +96,8 @@ final class BlockController: ObservableObject {
     @Published private(set) var sessions: [Session]
     @Published private(set) var lastSummary: SessionSummary?
     @Published private(set) var safariAccess: SafariAccess = .unknown
+    /// Picked up on the block page, oldest first.
+    @Published private(set) var finds: [Find]
     /// Ticks once a second for countdowns.
     @Published private(set) var now = Date()
 
@@ -102,9 +125,12 @@ final class BlockController: ObservableObject {
         }
         self.sessions = sessions
         lastSummary = store.load(SessionSummary.self, from: .summary)
+        finds = store.load([Find].self, from: .finds) ?? []
     }
 
     func launch() {
+        pageServer.finds = { [weak self] in self?.finds.map(\.kind.rawValue) ?? [] }
+        pageServer.onFind = { [weak self] kind in self?.addFind(kind) ?? false }
         pageServer.start()
         appGuard.onAttempt = { [weak self] app in
             log.info("Closed \(app.bundleIdentifier ?? "?", privacy: .public)")
@@ -136,6 +162,17 @@ final class BlockController: ObservableObject {
 
     /// When everything is open again.
     var blockedUntil: Date? { sessions.map(\.endsAt).max() }
+
+    /// Attempts across running blocks; the menu's water stirs when it goes up.
+    var totalAttempts: Int { sessions.reduce(0) { $0 + $1.attempts } }
+
+    /// The block page reports a find by its kind; anything else is ignored.
+    func addFind(_ kind: String) -> Bool {
+        guard let kind = Find.Kind(rawValue: kind) else { return false }
+        finds.append(Find(kind: kind, foundAt: Date()))
+        store.save(finds, as: .finds)
+        return true
+    }
 
     func startBlock() {
         let start = Date()

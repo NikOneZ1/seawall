@@ -4,7 +4,7 @@ import Foundation
 struct Store {
     enum File: String {
         /// `session` is the single block of older versions, read once to migrate.
-        case config, sessions, session, summary
+        case config, sessions, session, summary, finds
     }
 
     let directory: URL

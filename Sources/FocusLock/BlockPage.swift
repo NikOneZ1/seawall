@@ -208,9 +208,18 @@ let blockPageHTML = #"""
 
 
 
-  // ---------- finds: one small thing in the sand each time, kept in this browser ----------
-  const store = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
-  let finds = store.get("fl-finds", []);
+  // ---------- finds: one small thing in the sand each time, kept by the app so the menu shows them too ----------
+  let finds = [];
+  const report = (kind) => fetch(`/find?kind=${encodeURIComponent(kind)}`, { method: "POST" }).catch(() => {});
+  (async () => {
+    // Earlier versions kept finds in this browser; hand them to the app once.
+    try {
+      const old = JSON.parse(localStorage.getItem("fl-finds") || "[]");
+      if (old.length) { await Promise.all(old.map(report)); localStorage.removeItem("fl-finds"); }
+    } catch (e) { /* storage unavailable */ }
+    try { finds = await (await fetch("/finds")).json(); } catch (e) { /* app unreachable */ }
+    renderFinds();
+  })();
   // More tries stir it up harder, and it takes longer to settle.
   const strength = () => Math.min(1.6, 0.75 + 0.25 * (tries - 1));
   const clearAfter = () => 6 + (strength() - 0.75) * 8;
@@ -299,7 +308,7 @@ let blockPageHTML = #"""
       dye.swap();
     }
   }
-  let lastStir = 0, openingStir = true;
+  let lastStir = 0;
   function stirUp(k = 1) {
     for (let i = 0; i < 44; i++) {
       const x = 0.04 + Math.random() * 0.92, y = 0.1 + Math.random() * 0.7;
@@ -343,9 +352,9 @@ let blockPageHTML = #"""
         // slow hands leave a clear wake; fast ones lift silt
         const k = ptr.down ? 1 : 0.35, silt = ptr.down ? Math.min(0.5, sp * 0.004) : Math.min(0.3, Math.max(0, sp - 10) * 0.003) * k;
         splat(x, y, dx * 6 * k, dy * 6 * k, silt, ptr.down ? 0.5 : 0.25);
-        if (silt > 0.02) lastStir = time, openingStir = false;
+        if (silt > 0.02) lastStir = time;
         // close to the bottom, a quick move kicks up sand
-        if (y < floorAt(x) + 0.05 && sp * k > 5) { kickSand(x, 260 + sp * 6 * k, Math.min(0.45, sp * 0.006) * k, 0.6); lastStir = time; openingStir = false; }
+        if (y < floorAt(x) + 0.05 && sp * k > 5) { kickSand(x, 260 + sp * 6 * k, Math.min(0.45, sp * 0.006) * k, 0.6); lastStir = time; }
       }
     }
     ptr.x = x; ptr.y = y; ptr.has = true;
@@ -358,7 +367,7 @@ let blockPageHTML = #"""
     if (y < floorAt(x) + 0.015) {
       // on the sand: a cloud of sand
       kickSand(x, 650, 1.0, 1.3); splat(x - 0.02, floorAt(x), -220, 260, 0.4, 0.7); splat(x + 0.02, floorAt(x), 220, 260, 0.4, 0.7);
-      lastStir = time; openingStir = false;
+      lastStir = time;
     } else {
       // in the water: a soft swirl
       splat(x, y, 0, 220, 0.04, 0.35);
@@ -368,7 +377,7 @@ let blockPageHTML = #"""
   canvas.addEventListener("pointerleave", () => { ptr.has = false; setHover(false); });
 
   function pickUp() {
-    find.picked = true; setHover(false); finds.push(find.kind); store.set("fl-finds", finds);
+    find.picked = true; setHover(false); finds.push(find.kind); report(find.kind);
     splat(find.x, find.y, 0, 200, 0.12, 0.5);
     toast(`You found ${KINDS[find.kind]}. ${finds.length === 1 ? "Your first find." : `${finds.length} finds so far.`}`, 6);
     renderFinds(); drawText();
@@ -390,15 +399,8 @@ let blockPageHTML = #"""
 
   const line = $("line");
   const say = (s) => { if (line.textContent !== s) line.textContent = s; };
-  function message() {
-    if (now.over) return "The water's clear. The block is over.";
-    if (time < toastUntil) return toastMsg;
-    const calm = time - lastStir;
-    if (openingStir && calm < clearAfter()) return tries === 1 ? `Trying ${host} stirred things up. Let it settle.` : `${ord(tries)} try. It takes a little longer to settle.`;
-    if (calm < 6) return "Stirred up again. It settles if you let it.";
-    if (pickable()) return "Clear again. Something is lying in the sand.";
-    return now.left ? `Clear again. ${now.left} until ${host} opens.` : "Clear again.";
-  }
+  // The line stays quiet; it only speaks up when you pick something out of the sand.
+  const message = () => (time < toastUntil ? toastMsg : "");
 
   let last = performance.now();
   function frame(stamp) {

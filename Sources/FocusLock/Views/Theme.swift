@@ -13,8 +13,14 @@ enum Deep {
     static let accent = Color(red: 0.63, green: 0.88, blue: 0.92)
     static let sandLight = Color(red: 0.50, green: 0.52, blue: 0.42)
     static let sandDark = Color(red: 0.32, green: 0.36, blue: 0.31)
-    /// Height of the sand at the bottom of the menu.
-    static let floor: CGFloat = 16
+    /// Height of the sand at the bottom of the menu, tall enough for the finds lying in it.
+    static let floor: CGFloat = 26
+
+    /// The sand's top edge at `u` (0…1 across), in points from the bottom: two slow waves,
+    /// like the floor on the block page. The water shader draws the same line.
+    static func sandTop(at u: CGFloat) -> CGFloat {
+        floor + sin(u * 7) * 2.2 + sin(u * 19 + 1) * 1.1
+    }
 
     static func label(_ text: String) -> some View {
         Text(text.uppercased())
@@ -53,15 +59,14 @@ struct WaterBackground: View {
     }
 }
 
-/// The top edge of the sand: two slow waves, like the floor on the block page.
+/// The sand, up to `Deep.sandTop`.
 private struct Sand: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
         for step in 0...64 {
-            let u = Double(step) / 64
-            let y = rect.minY + 4 + sin(u * 7) * 2.2 + sin(u * 19 + 1) * 1.1
-            path.addLine(to: CGPoint(x: rect.minX + rect.width * u, y: y))
+            let u = CGFloat(step) / 64
+            path.addLine(to: CGPoint(x: rect.minX + rect.width * u, y: rect.maxY - Deep.sandTop(at: u)))
         }
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
         path.closeSubpath()
