@@ -46,20 +46,18 @@ private struct SessionView: View {
 
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
+                Deep.label("until \(Format.clockTime(session.endsAt, relativeTo: now))")
                 CountdownText(seconds: session.endsAt.timeIntervalSince(now))
-                    .font(.system(size: 44, weight: .light))
-                    .tracking(-1)
-                HStack(spacing: 8) {
-                    HStack(spacing: 5) {
-                        ForEach(session.sites, id: \.self) { SiteIcon(pattern: $0) }
-                        ForEach(session.apps, id: \.bundleID) { AppIcon(bundleID: $0.bundleID) }
-                        if session.blocksOtherBrowsers { BrowsersIcon() }
-                    }
-                    .help(session.names)
-                    Text("until \(Format.clockTime(session.endsAt, relativeTo: now))")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    .font(.system(size: 42, weight: .semibold))
+                    .tracking(-1.2)
+                    .shadow(color: Deep.depth.opacity(0.45), radius: 12, y: 1)
+                HStack(spacing: 5) {
+                    ForEach(session.sites, id: \.self) { SiteIcon(pattern: $0) }
+                    ForEach(session.apps, id: \.bundleID) { AppIcon(bundleID: $0.bundleID) }
+                    if session.blocksOtherBrowsers { BrowsersIcon() }
                 }
+                .help(session.names)
+                .padding(.top, 2)
             }
 
             ProgressHairline(value: progress(at: now))

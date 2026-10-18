@@ -1,8 +1,73 @@
 import FocusLockCore
 import SwiftUI
 
-/// The text colour of the window behind us: what sits on top of a `Color.primary` fill.
-private let inverted = Color(nsColor: .windowBackgroundColor)
+/// The water from the block page, so the menu and the page a blocked tab lands on look like one place.
+enum Deep {
+    /// Lit water near the surface and deep water below it.
+    static let surface = Color(red: 0.18, green: 0.52, blue: 0.58)
+    static let depth = Color(red: 0.05, green: 0.22, blue: 0.27)
+    /// Dark glass for quiet controls, and the text that sits on a white fill.
+    static let glass = Color(red: 0.03, green: 0.16, blue: 0.19).opacity(0.35)
+    static let ink = Color(red: 0.04, green: 0.18, blue: 0.21)
+    /// Small mono labels: "UNTIL 18:02".
+    static let accent = Color(red: 0.63, green: 0.88, blue: 0.92)
+    static let sandLight = Color(red: 0.50, green: 0.52, blue: 0.42)
+    static let sandDark = Color(red: 0.32, green: 0.36, blue: 0.31)
+    /// Height of the sand at the bottom of the menu.
+    static let floor: CGFloat = 16
+
+    static func label(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+            .tracking(0.8)
+            .foregroundStyle(accent.opacity(0.85))
+    }
+}
+
+/// Water lit from above, a few slanted rays, and a strip of sand along the bottom.
+struct WaterBackground: View {
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            LinearGradient(colors: [Deep.surface, Deep.depth], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [.white.opacity(0.2), .clear], center: UnitPoint(x: 0.65, y: -0.08), startRadius: 0, endRadius: 300)
+            Canvas { context, size in
+                for (i, x) in [0.14, 0.38, 0.6, 0.86].enumerated() {
+                    let top = size.width * x, lean = size.height * 0.22, width = 14.0 + Double(i % 2) * 10
+                    var ray = Path()
+                    ray.move(to: CGPoint(x: top, y: 0))
+                    ray.addLine(to: CGPoint(x: top + width, y: 0))
+                    ray.addLine(to: CGPoint(x: top + width * 2 - lean, y: size.height))
+                    ray.addLine(to: CGPoint(x: top - lean, y: size.height))
+                    context.fill(ray, with: .linearGradient(
+                        Gradient(colors: [.white.opacity(0.045), .white.opacity(0)]),
+                        startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: size.height * 0.7)))
+                }
+            }
+            .blur(radius: 14)
+            Sand()
+                .fill(LinearGradient(colors: [Deep.sandLight, Deep.sandDark], startPoint: .top, endPoint: .bottom))
+                .frame(height: Deep.floor + 6)
+                .blur(radius: 0.6)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// The top edge of the sand: two slow waves, like the floor on the block page.
+private struct Sand: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        for step in 0...64 {
+            let u = Double(step) / 64
+            let y = rect.minY + 4 + sin(u * 7) * 2.2 + sin(u * 19 + 1) * 1.1
+            path.addLine(to: CGPoint(x: rect.minX + rect.width * u, y: y))
+        }
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
 
 /// The one selection control: every site and app is a chip with its icon. On is tinted with
 /// the icon in colour, off is an outline with the icon in grey; a running block adds a small lock.
@@ -47,17 +112,21 @@ private struct ChipStyle: ButtonStyle {
     let hovering: Bool
 
     func makeBody(configuration: Configuration) -> some View {
-        let fill = configuration.isPressed ? 0.16 : (isOn ? 0.09 : 0) + (hovering ? 0.05 : 0)
+        let fill = configuration.isPressed ? 0.24 : (isOn ? 0.16 : 0) + (hovering ? 0.06 : 0)
         configuration.label
             .font(.system(size: 12.5, weight: .medium))
-            .foregroundStyle(isOn ? Color.primary : Color.primary.opacity(0.55))
+            .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.6))
             .padding(.leading, 9)
             .padding(.trailing, 11)
             .frame(height: 28)
             .background {
                 Capsule()
-                    .fill(Color.primary.opacity(max(fill, 0.001)))
-                    .strokeBorder(Color.primary.opacity(isOn ? 0.06 : 0.14))
+                    .fill(Deep.glass)
+                    .overlay {
+                        Capsule()
+                            .fill(Color.white.opacity(max(fill, 0.001)))
+                            .strokeBorder(Color.white.opacity(isOn ? 0.1 : 0.16))
+                    }
             }
             .contentShape(.capsule)
     }
@@ -182,8 +251,8 @@ struct FlowLayout: Layout {
 
 // MARK: - Actions
 
-/// Press and hold to lock. The fill sweeps across and the label inverts under it,
-/// so starting a block is a deliberate second, not a stray click.
+/// Press and hold to lock. A white fill sweeps across the dark glass pill and the label
+/// turns deep under it, so starting a block is a deliberate second, not a stray click.
 struct HoldButton: View {
     static let holdTime = 0.8
 
@@ -197,19 +266,23 @@ struct HoldButton: View {
     @State private var pressing = false
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = Capsule()
         ZStack {
-            shape.fill(Color.primary.opacity(isEnabled ? 0.09 : 0.04))
-            label.foregroundStyle(Color.primary.opacity(isEnabled ? 1 : 0.35))
+            shape.fill(Deep.glass)
+                .overlay { shape.fill(Color.white.opacity(isEnabled ? 0.1 : 0.03)) }
+                .overlay { shape.strokeBorder(Color.white.opacity(isEnabled ? 0.18 : 0.1)) }
+            label.foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.4))
             ZStack {
-                shape.fill(Color.primary)
-                label.foregroundStyle(inverted)
+                shape.fill(Color.white.opacity(0.92))
+                label.foregroundStyle(Deep.ink)
             }
             .mask(alignment: .leading) {
                 GeometryReader { proxy in
                     Rectangle().frame(width: proxy.size.width * progress)
                 }
             }
+            // A zero-width mask still lets a hairline of the round end through.
+            .opacity(progress > 0 ? 1 : 0)
         }
         .frame(height: 40)
         .contentShape(shape)

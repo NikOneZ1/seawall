@@ -148,11 +148,9 @@ struct SetupView: View {
                 Spacer()
 
                 if controller.plannedEnd > controller.now {
-                    Text(until
+                    Deep.label(until
                          ? Format.duration(controller.plannedEnd.timeIntervalSince(controller.now))
                          : "until \(Format.clockTime(controller.plannedEnd, relativeTo: controller.now))")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
                 }
             }
             if until {
