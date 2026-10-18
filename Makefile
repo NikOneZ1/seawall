@@ -8,7 +8,7 @@ run: build
 
 # The watchdog relaunches the app by path, so keep it somewhere stable.
 install: build
-	rm -rf /Applications/Seawall.app /Applications/Seawall.app
+	rm -rf /Applications/Seawall.app /Applications/FocusLock.app
 	cp -R build/Seawall.app /Applications/
 	open /Applications/Seawall.app
 
