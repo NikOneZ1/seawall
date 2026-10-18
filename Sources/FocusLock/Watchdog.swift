@@ -1,7 +1,7 @@
 import Foundation
 
 /// While a block runs, a LaunchAgent re-opens the app every 10 seconds and at login.
-/// Killing FocusLock in Activity Monitor buys you at most 10 seconds; once relaunched it
+/// Killing Seawall in Activity Monitor buys you at most 10 seconds; once relaunched it
 /// picks the session up from disk and closes whatever you opened in the meantime.
 enum Watchdog {
     static let label = "com.nikitaverba.FocusLock.watchdog"

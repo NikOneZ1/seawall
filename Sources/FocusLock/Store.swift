@@ -1,6 +1,6 @@
 import Foundation
 
-/// JSON files in ~/Library/Application Support/FocusLock.
+/// JSON files in ~/Library/Application Support/Seawall.
 struct Store {
     enum File: String {
         /// `session` is the single block of older versions, read once to migrate.
@@ -10,8 +10,13 @@ struct Store {
     let directory: URL
 
     init() {
-        directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("FocusLock", isDirectory: true)
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        directory = support.appendingPathComponent("Seawall", isDirectory: true)
+        // The app was called FocusLock; its blocks and finds move over on the first launch.
+        let old = support.appendingPathComponent("FocusLock", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: directory.path), FileManager.default.fileExists(atPath: old.path) {
+            try? FileManager.default.moveItem(at: old, to: directory)
+        }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 

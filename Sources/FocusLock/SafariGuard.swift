@@ -12,7 +12,7 @@ struct SafariTab {
 }
 
 enum SafariError: Error {
-    /// The user said no to "FocusLock wants to control Safari" (or revoked it later).
+    /// The user said no to "Seawall wants to control Safari" (or revoked it later).
     case notPermitted
     case failed(Int)
 }

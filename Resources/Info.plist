@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>FocusLock</string>
+	<string>Seawall</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
@@ -13,9 +13,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>FocusLock</string>
+	<string>Seawall</string>
 	<key>CFBundleDisplayName</key>
-	<string>FocusLock</string>
+	<string>Seawall</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -29,7 +29,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>FocusLock reads Safari tab addresses to close blocked sites while a block is running.</string>
+	<string>Seawall reads Safari tab addresses to close blocked sites while a block is running.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

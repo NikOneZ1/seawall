@@ -4,13 +4,13 @@ build:
 	./scripts/build-app.sh
 
 run: build
-	open build/FocusLock.app
+	open build/Seawall.app
 
 # The watchdog relaunches the app by path, so keep it somewhere stable.
 install: build
-	rm -rf /Applications/FocusLock.app
-	cp -R build/FocusLock.app /Applications/
-	open /Applications/FocusLock.app
+	rm -rf /Applications/Seawall.app /Applications/Seawall.app
+	cp -R build/Seawall.app /Applications/
+	open /Applications/Seawall.app
 
 # Command Line Tools ship Swift Testing but SwiftPM doesn't find it on its own; Xcode doesn't need this.
 CLT_DEV := /Library/Developer/CommandLineTools/Library/Developer

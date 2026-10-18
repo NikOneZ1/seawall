@@ -327,7 +327,7 @@ final class BlockController: ObservableObject {
     }
 
     /// Ends blocks and shows how each went. The caller then re-applies what's left, so a
-    /// relaunch can still count apps that were opened while FocusLock wasn't running.
+    /// relaunch can still count apps that were opened while Seawall wasn't running.
     private func finish(_ ended: [Session], early: Bool) {
         guard !ended.isEmpty else { return }
         let endedAt = Date()
