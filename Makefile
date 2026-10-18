@@ -1,0 +1,26 @@
+.PHONY: build run install test clean
+
+build:
+	./scripts/build-app.sh
+
+run: build
+	open build/FocusLock.app
+
+# The watchdog relaunches the app by path, so keep it somewhere stable.
+install: build
+	rm -rf /Applications/FocusLock.app
+	cp -R build/FocusLock.app /Applications/
+	open /Applications/FocusLock.app
+
+# Command Line Tools ship Swift Testing but SwiftPM doesn't find it on its own; Xcode doesn't need this.
+CLT_DEV := /Library/Developer/CommandLineTools/Library/Developer
+ifeq ($(shell xcode-select -p),/Library/Developer/CommandLineTools)
+TEST_FLAGS := -Xswiftc -F -Xswiftc $(CLT_DEV)/Frameworks -Xlinker -F -Xlinker $(CLT_DEV)/Frameworks \
+	-Xlinker -rpath -Xlinker $(CLT_DEV)/Frameworks -Xlinker -rpath -Xlinker $(CLT_DEV)/usr/lib
+endif
+
+test:
+	swift test $(TEST_FLAGS)
+
+clean:
+	rm -rf .build build
