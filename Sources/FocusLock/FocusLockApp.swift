@@ -42,11 +42,11 @@ struct MenuBarLabel: View {
     var body: some View {
         if let until = controller.blockedUntil {
             HStack(spacing: 4) {
-                Image(systemName: "lock.fill")
+                Image(nsImage: SlabGlyph.locked)
                 Text(Format.clockTime(until, relativeTo: controller.now))
             }
         } else {
-            Image(systemName: "lock.open")
+            Image(nsImage: SlabGlyph.open)
         }
     }
 }
