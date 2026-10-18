@@ -50,5 +50,10 @@ Not tested yet: whether AppleScript sees tabs in private Safari windows.
 
 - [ ] Schedules (weekdays 10:00–18:00)
 - [ ] Daily stats
-- [ ] Icon and a signed release
+- [x] Icon
+- [ ] A signed release
 - [ ] iPhone (Screen Time API, $99/year)
+
+## License
+
+MIT. See [LICENSE](LICENSE).

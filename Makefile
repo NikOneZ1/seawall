@@ -1,4 +1,4 @@
-.PHONY: build run install test clean
+.PHONY: build run install test icon clean
 
 build:
 	./scripts/build-app.sh
@@ -21,6 +21,10 @@ endif
 
 test:
 	swift test $(TEST_FLAGS)
+
+# Redraws Resources/AppIcon.icns after an edit to Resources/AppIcon.svg.
+icon:
+	swift scripts/render-icon.swift
 
 clean:
 	rm -rf .build build
