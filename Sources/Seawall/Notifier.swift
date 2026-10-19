@@ -41,6 +41,23 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// A block in rounds went on a break, or a new round started.
+    func phaseChanged(_ session: Session, at now: Date) {
+        guard Preferences.shared.notifications, allowed, let rounds = session.rounds,
+              let phase = session.phase(at: now) else { return }
+        let content = UNMutableNotificationContent()
+        switch phase {
+        case .resting(let next, let until):
+            content.title = "Break, \(Int(rounds.rest / 60)) minutes"
+            content.body = "Round \(next) of \(rounds.count) locks again at \(Format.clockTime(until, relativeTo: now))."
+        case .locked(let round, let endsAt):
+            content.title = "Round \(round) of \(rounds.count)"
+            content.body = "Locked again until \(Format.clockTime(endsAt, relativeTo: now))."
+        }
+        content.sound = Preferences.shared.sounds ? nil : .default
+        center.add(UNNotificationRequest(identifier: Self.id(session) + ".phase", content: content, trigger: nil))
+    }
+
     /// Posts how a block went. False when it couldn't, so the caller shows a dialog instead.
     func blockEnded(_ session: Session, _ summary: SessionSummary) -> Bool {
         center.removePendingNotificationRequests(withIdentifiers: [Self.id(session)])

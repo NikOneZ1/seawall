@@ -42,12 +42,17 @@ public struct Session: Codable, Equatable, Sendable {
     public var allowedSites: [String] = []
     /// The way out this block started with.
     public var earlyExit: EarlyExit = .wait10
+    /// Set for a block in rounds, with breaks in between; `nil` for one stretch.
+    public var rounds: Rounds?
+    /// Clock changes absorbed so far, so the rounds keep their real length too.
+    var roundsShift: TimeInterval = 0
     public var siteAttempts = 0
     public var appAttempts = 0
     public var unlockRequestedAt: Date?
 
     public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool,
-                groups: [SiteGroup] = [], allowedSites: [String] = [], earlyExit: EarlyExit = .wait10) {
+                groups: [SiteGroup] = [], allowedSites: [String] = [], earlyExit: EarlyExit = .wait10,
+                rounds: Rounds? = nil) {
         self.startedAt = startedAt
         self.endsAt = endsAt
         self.sites = sites
@@ -56,6 +61,19 @@ public struct Session: Codable, Equatable, Sendable {
         self.groups = groups
         self.allowedSites = allowedSites
         self.earlyExit = earlyExit
+        self.rounds = rounds
+    }
+
+    /// Which round a block in rounds is in, or `nil` for a block in one stretch.
+    public func phase(at now: Date) -> Phase? {
+        let start = startedAt + roundsShift
+        return rounds?.phase(after: now.timeIntervalSince(start), from: start)
+    }
+
+    /// Whether the block is holding things closed right now: always, except on a break.
+    public func isHolding(at now: Date) -> Bool {
+        if case .resting = phase(at: now) { return false }
+        return true
     }
 
     /// The sites typed in, plus every site of the block's groups.
@@ -106,13 +124,14 @@ public struct Session: Codable, Equatable, Sendable {
     public mutating func absorbClockJump(_ skew: TimeInterval) {
         guard abs(skew) >= Self.clockJumpThreshold else { return }
         endsAt += skew
+        roundsShift += skew
         if let requested = unlockRequestedAt { unlockRequestedAt = requested + skew }
     }
 }
 
 extension Session {
     private enum CodingKeys: String, CodingKey {
-        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, earlyExit, siteAttempts, appAttempts, unlockRequestedAt
+        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, earlyExit, rounds, roundsShift, siteAttempts, appAttempts, unlockRequestedAt
     }
 
     /// Blocks saved before groups existed have no `groups`.
@@ -126,6 +145,8 @@ extension Session {
         groups = try c.decodeIfPresent([SiteGroup].self, forKey: .groups) ?? []
         allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
         earlyExit = try c.decodeIfPresent(EarlyExit.self, forKey: .earlyExit) ?? .wait10
+        rounds = try c.decodeIfPresent(Rounds.self, forKey: .rounds)
+        roundsShift = try c.decodeIfPresent(TimeInterval.self, forKey: .roundsShift) ?? 0
         siteAttempts = try c.decodeIfPresent(Int.self, forKey: .siteAttempts) ?? 0
         appAttempts = try c.decodeIfPresent(Int.self, forKey: .appAttempts) ?? 0
         unlockRequestedAt = try c.decodeIfPresent(Date.self, forKey: .unlockRequestedAt)

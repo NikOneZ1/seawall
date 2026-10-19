@@ -48,10 +48,12 @@ private struct SessionView: View {
     var body: some View {
         let now = controller.now
 
+        let phase = session.phase(at: now)
+
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Deep.label("until \(Format.clockTime(session.endsAt, relativeTo: now))")
-                CountdownText(seconds: session.endsAt.timeIntervalSince(now))
+                Deep.label(label(phase, now: now))
+                CountdownText(seconds: (phase.map(Self.phaseEnd) ?? session.endsAt).timeIntervalSince(now))
                     .font(.system(size: 42, weight: .semibold))
                     .tracking(-1.2)
                     .shadow(color: Deep.depth.opacity(0.45), radius: 12, y: 1)
@@ -72,6 +74,27 @@ private struct SessionView: View {
         }
     }
 
+    /// "until 18:00", or for a block in rounds "round 2 of 4 · until 10:50" and "break · round 3 at 10:55".
+    private func label(_ phase: Phase?, now: Date) -> String {
+        guard let phase, let rounds = session.rounds else {
+            return "until \(Format.clockTime(session.endsAt, relativeTo: now))"
+        }
+        switch phase {
+        case .locked(let round, let endsAt):
+            return "round \(round) of \(rounds.count) · until \(Format.clockTime(endsAt, relativeTo: now))"
+        case .resting(let next, let until):
+            return "break · round \(next) at \(Format.clockTime(until, relativeTo: now))"
+        }
+    }
+
+    private static func phaseEnd(_ phase: Phase) -> Date {
+        switch phase {
+        case .locked(_, let endsAt): endsAt
+        case .resting(_, let until): until
+        }
+    }
+
+    /// The whole block's progress, rounds and breaks included.
     private func progress(at now: Date) -> Double {
         let total = session.endsAt.timeIntervalSince(session.startedAt)
         guard total > 0 else { return 1 }

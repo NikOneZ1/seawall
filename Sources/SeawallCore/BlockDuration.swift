@@ -1,7 +1,7 @@
 import Foundation
 
 public enum BlockDuration: String, Codable, CaseIterable, Identifiable, Sendable {
-    case minutes15, minutes30, minutes45, hour1, hours2, hours3, hours4, untilTime
+    case minutes15, minutes30, minutes45, hour1, hours2, hours3, hours4, rounds, untilTime
 
     public var id: String { rawValue }
 
@@ -15,6 +15,7 @@ public enum BlockDuration: String, Codable, CaseIterable, Identifiable, Sendable
         case .hours2: 2 * 60 * 60
         case .hours3: 3 * 60 * 60
         case .hours4: 4 * 60 * 60
+        case .rounds: Rounds.standard.total
         case .untilTime: nil
         }
     }
@@ -28,6 +29,7 @@ public enum BlockDuration: String, Codable, CaseIterable, Identifiable, Sendable
         case .hours2: "2 hours"
         case .hours3: "3 hours"
         case .hours4: "4 hours"
+        case .rounds: "4 × 25 min with breaks"
         case .untilTime: "Until a set time…"
         }
     }

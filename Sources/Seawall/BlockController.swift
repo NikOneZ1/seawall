@@ -165,6 +165,8 @@ final class BlockController: ObservableObject {
     private var clock = ClockWatch()
     /// What each running block keeps closed in browsers; blocks that only cover apps are left out.
     private var filters: [Session.ID: WebFilter] = [:]
+    /// Blocks holding things closed right now: all of them, except those on a break between rounds.
+    private var holdingIDs: Set<Session.ID> = []
     /// Tab+URL → when we redirected it, so a redirect still in flight isn't counted twice.
     private var recentRedirects: [String: Date] = [:]
     /// The "End now?" alert on screen for a block whose wait is over.
@@ -254,7 +256,8 @@ final class BlockController: ObservableObject {
             blocksOtherBrowsers: config.closesOtherBrowsers,
             groups: config.enabledGroups,
             allowedSites: config.blocksWholeWeb ? config.allowedSites : [],
-            earlyExit: Preferences.shared.earlyExit
+            earlyExit: Preferences.shared.earlyExit,
+            rounds: config.duration == .rounds ? .standard : nil
         ))
         persistSessions()
         applyBlocks(countRunningApps: false)
@@ -324,12 +327,14 @@ final class BlockController: ObservableObject {
         // A new block checks the browsers right away, wherever they are.
         lastBrowserCheck = [:]
         filters = [:]
-        for session in sessions {
+        let holding = sessions.filter { $0.isHolding(at: Date()) }
+        holdingIDs = Set(holding.map(\.id))
+        for session in holding {
             let filter = WebFilter(session)
             if !filter.isEmpty { filters[session.id] = filter }
         }
-        let bundleIDs = sessions.reduce(into: Set<String>()) { $0.formUnion($1.blockedBundleIDs) }
-        appGuard.update(bundleIDs: bundleIDs, games: sessions.contains(where: \.blocksGames), countRunning: countRunningApps)
+        let bundleIDs = holding.reduce(into: Set<String>()) { $0.formUnion($1.blockedBundleIDs) }
+        appGuard.update(bundleIDs: bundleIDs, games: holding.contains(where: \.blocksGames), countRunning: countRunningApps)
         if sessions.isEmpty {
             Watchdog.uninstall()
         } else {
@@ -354,6 +359,15 @@ final class BlockController: ObservableObject {
             let over = sessions.filter { $0.isOver(at: wall) }
             if !over.isEmpty {
                 finish(over, early: false)
+                applyBlocks(countRunningApps: false)
+            }
+            // A block in rounds going on a break, or back from one.
+            let holding = Set(sessions.filter { $0.isHolding(at: wall) }.map(\.id))
+            if holding != holdingIDs {
+                for session in sessions where holding.contains(session.id) != holdingIDs.contains(session.id) {
+                    Notifier.shared.phaseChanged(session, at: wall)
+                    if holding.contains(session.id) { Sounds.locked() } else { Sounds.over() }
+                }
                 applyBlocks(countRunningApps: false)
             }
             appGuard.sweep()
@@ -468,7 +482,8 @@ final class BlockController: ObservableObject {
     private func countAttempt(_ app: NSRunningApplication) {
         let bundleID = app.bundleIdentifier ?? ""
         guard let index = sessions.lastEnding(where: { session in
-            session.blockedBundleIDs.contains(bundleID) || (session.blocksGames && AppGuard.isGame(app))
+            holdingIDs.contains(session.id)
+                && (session.blockedBundleIDs.contains(bundleID) || (session.blocksGames && AppGuard.isGame(app)))
         }) else { return }
         sessions[index].appAttempts += 1
         persistSessions()
