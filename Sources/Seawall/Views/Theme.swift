@@ -223,6 +223,35 @@ extension SiteGroup {
     }
 }
 
+/// A saved list, like Work: filled white when it's what's switched on, glass otherwise.
+struct ListChip: View {
+    let name: String
+    let isCurrent: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(name)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isCurrent ? Deep.ink : Color.white.opacity(hovering ? 0.95 : 0.75))
+                .padding(.horizontal, 11)
+                .frame(height: 24)
+                .background {
+                    Capsule()
+                        .fill(isCurrent ? Color.white.opacity(0.9) : Color.white.opacity(hovering ? 0.12 : 0.06))
+                        .strokeBorder(Color.white.opacity(isCurrent ? 0 : 0.18))
+                }
+                .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(isCurrent ? "\(name) is switched on. Right-click to update or delete." : "Switch to \(name)")
+        .animation(.easeOut(duration: 0.15), value: isCurrent)
+    }
+}
+
 /// An offer to add something, like a group under "+ Add": smaller than a chip, with a dashed
 /// edge so it doesn't read as one that's already in the list.
 struct SuggestionChip: View {

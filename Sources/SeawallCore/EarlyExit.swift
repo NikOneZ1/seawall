@@ -24,6 +24,15 @@ public enum EarlyExit: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The menu's own line under the duration.
+    public var menuTitle: String {
+        switch self {
+        case .wait10: "Leave early after 10 min"
+        case .wait30: "Leave early after 30 min"
+        case .never: "No leaving early"
+        }
+    }
+
     /// The line under the hold button: what you're agreeing to.
     public var finePrint: String {
         switch self {

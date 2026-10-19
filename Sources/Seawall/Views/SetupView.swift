@@ -28,16 +28,17 @@ struct SetupView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
-                    listMenu
-                    if let current = controller.config.currentList {
-                        Deep.label(current.name)
-                    }
+                    Text("Lock")
+                        .font(Self.wordFont)
                     Spacer()
                     QuietButton(title: adding ? "Done" : "+ Add") {
                         adding.toggle()
                         siteFieldFocused = adding
                     }
                     .help("Add a site or an app")
+                }
+                if !controller.config.lists.isEmpty {
+                    listsRow
                 }
                 FlowLayout(spacing: 6) {
                     groupChips
@@ -67,8 +68,11 @@ struct SetupView: View {
             }
             .opacity(sunk)
 
-            durationRow
-                .opacity(sunk)
+            VStack(alignment: .leading, spacing: 6) {
+                durationRow
+                exitMenu
+            }
+            .opacity(sunk)
 
             deniedNotice
                 .opacity(sunk)
@@ -126,41 +130,55 @@ struct SetupView: View {
         }
     }
 
-    /// "Lock ⌄": saved lists to switch to, and saving what's on as a new one.
-    private var listMenu: some View {
+    /// Saved lists, like Work or Evening: tap one to switch to exactly what it holds. The one
+    /// that matches what's switched on is filled in.
+    private var listsRow: some View {
         let current = controller.config.currentList
-        return Menu {
+        return FlowLayout(spacing: 6) {
             ForEach(controller.config.lists) { list in
-                Button {
+                ListChip(name: list.name, isCurrent: list == current) {
                     controller.applyList(list)
-                } label: {
-                    if list == current { Label(list.name, systemImage: "checkmark") } else { Text(list.name) }
+                }
+                .contextMenu {
+                    Button("Update with what's on") { controller.saveList(list.name) }
+                    Button("Delete", role: .destructive) { controller.deleteList(list) }
                 }
             }
-            if !controller.config.lists.isEmpty { Divider() }
-            Button(current == nil ? "Save as a list…" : "Save as a new list…") {
-                listName = ""
-                naming = true
-                nameFieldFocused = true
+            if current == nil, !naming {
+                SuggestionChip(title: "Save list", help: "Save what's switched on as a list") { startNaming() }
             }
-            if let current {
-                Button("Delete “\(current.name)”", role: .destructive) { controller.deleteList(current) }
+        }
+    }
+
+    private func startNaming() {
+        listName = ""
+        naming = true
+        nameFieldFocused = true
+    }
+
+    /// "Leave early after 10 min ⌄": the way out for the next block, right where you lock it.
+    private var exitMenu: some View {
+        Menu {
+            Picker("Leaving early", selection: $preferences.earlyExit) {
+                ForEach(EarlyExit.allCases) { Text($0.title).tag($0) }
             }
+            .pickerStyle(.inline)
         } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("Lock")
+            HStack(spacing: 5) {
+                Text(preferences.earlyExit.menuTitle)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 8.5, weight: .bold))
                     .foregroundStyle(.tertiary)
             }
-            .font(Self.wordFont)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.secondary)
             .contentShape(.rect)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .help("Saved lists, like Work or Evening")
+        .help("How this block can be ended early")
     }
 
     private var nameRow: some View {
@@ -278,6 +296,7 @@ struct SetupView: View {
             // Whole kinds of distraction in one tap; each one leaves this row once it's added.
             let missing = SiteGroup.allCases.filter { group in !controller.config.groups.contains { $0.group == group } }
             if !missing.isEmpty {
+                Deep.label("Groups")
                 FlowLayout(spacing: 6) {
                     ForEach(missing) { group in
                         SuggestionChip(title: group.title, help: group.summary) {
@@ -285,6 +304,21 @@ struct SetupView: View {
                         }
                     }
                 }
+            }
+            let sites = suggestedSites
+            if !sites.isEmpty {
+                Deep.label("Sites")
+                FlowLayout(spacing: 6) {
+                    ForEach(sites, id: \.self) { pattern in
+                        SuggestionChip(title: SiteRule(pattern)?.displayName ?? pattern, help: pattern) {
+                            _ = controller.addSite(pattern)
+                        }
+                    }
+                }
+            }
+            if controller.config.lists.isEmpty, !naming {
+                QuietButton(title: "Save what's on as a list…") { startNaming() }
+                    .padding(.top, 2)
             }
         }
     }
@@ -354,6 +388,22 @@ struct SetupView: View {
         guard controller.plannedEnd > controller.now else { return "That time has passed" }
         return "Hold to lock"
     }
+
+    /// The usual suspects, minus any the list already covers.
+    private var suggestedSites: [String] {
+        let have = controller.config.sites.compactMap { SiteRule($0.pattern) }
+        return Self.popularSites.filter { pattern in
+            guard let rule = SiteRule(pattern) else { return false }
+            return !have.contains { $0.covers(rule) }
+        }
+        .prefix(6)
+        .map { $0 }
+    }
+
+    private static let popularSites = [
+        "instagram.com", "tiktok.com", "x.com", "reddit.com", "youtube.com", "facebook.com",
+        "netflix.com", "twitch.tv", "news.ycombinator.com", "linkedin.com",
+    ]
 
     private func addSite() {
         if controller.addSite(newSite) {
