@@ -64,6 +64,8 @@ struct Config: Codable, Equatable {
     /// Left open while Whole web is on.
     var allowedSites: [String] = []
     var lists: [SavedList] = []
+    /// Blocks that start on their own, each locking one of the lists.
+    var schedules: [Schedule] = []
     var apps: [AppItem]
     var blockOtherBrowsers: Bool
     var duration: BlockDuration
@@ -125,6 +127,7 @@ extension Config {
         sites = try container.decode([SiteItem].self, forKey: .sites)
         allowedSites = try container.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
         lists = try container.decodeIfPresent([SavedList].self, forKey: .lists) ?? []
+        schedules = try container.decodeIfPresent([Schedule].self, forKey: .schedules) ?? []
         apps = try container.decode([AppItem].self, forKey: .apps)
         blockOtherBrowsers = try container.decode(Bool.self, forKey: .blockOtherBrowsers)
         duration = try container.decode(BlockDuration.self, forKey: .duration)
@@ -266,6 +269,50 @@ final class BlockController: ObservableObject {
         if let session = sessions.last { Notifier.shared.blockStarted(session) }
     }
 
+    // MARK: - Schedules
+
+    /// Starts any schedule whose time has come, until the end of its stretch. Each stretch
+    /// starts once, so ending one early doesn't bring it straight back. A schedule whose list
+    /// was deleted does nothing.
+    private func runSchedules(at now: Date) {
+        for index in config.schedules.indices {
+            let schedule = config.schedules[index]
+            guard let stretch = schedule.due(at: now), stretch.end.timeIntervalSince(now) > 60,
+                  let list = config.lists.first(where: { $0.name == schedule.listName }) else { continue }
+            config.schedules[index].lastRun = stretch.start
+            let session = Session(
+                startedAt: now,
+                endsAt: stretch.end,
+                sites: list.sites,
+                apps: config.apps.filter { list.apps.contains($0.bundleID) }.map { BlockedApp(bundleID: $0.bundleID, name: $0.name) },
+                blocksOtherBrowsers: list.otherBrowsers && !InstalledBrowsers.unreadable.isEmpty,
+                groups: list.groups,
+                allowedSites: list.groups.contains(.web) ? config.allowedSites : [],
+                earlyExit: Preferences.shared.earlyExit
+            )
+            // Two blocks can't share a start time: it's their ID.
+            guard !sessions.contains(where: { $0.id == session.id }) else { continue }
+            sessions.append(session)
+            persistSessions()
+            applyBlocks(countRunningApps: false)
+            Sounds.locked()
+            Notifier.shared.scheduleStarted(session, list: list.name)
+            Notifier.shared.blockStarted(session)
+        }
+    }
+
+    func saveSchedule(_ schedule: Schedule) {
+        if let index = config.schedules.firstIndex(where: { $0.id == schedule.id }) {
+            config.schedules[index] = schedule
+        } else {
+            config.schedules.append(schedule)
+        }
+    }
+
+    func deleteSchedule(_ schedule: Schedule) {
+        config.schedules.removeAll { $0.id == schedule.id }
+    }
+
     func requestUnlock(_ id: Session.ID) {
         guard let index = sessions.firstIndex(where: { $0.id == id }),
               sessions[index].unlockRequestedAt == nil, sessions[index].earlyExit.wait != nil else { return }
@@ -374,6 +421,7 @@ final class BlockController: ObservableObject {
             enforceBrowsers()
         }
         promptForUnlock(at: wall)
+        runSchedules(at: wall)
 
         if Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
             now = wall

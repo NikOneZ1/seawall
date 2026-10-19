@@ -10,6 +10,7 @@ struct SettingsView: View {
     static let repository = URL(string: "https://github.com/NikOneZ1/seawall")!
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 16) {
             Deep.label("Blocks")
                 .padding(.top, 12)
@@ -29,6 +30,10 @@ struct SettingsView: View {
 
             switchRow("Notifications", "5 minutes before a block ends, and how it went.", $preferences.notifications)
             switchRow("Sounds", "A soft sound when a block starts and when it ends.", $preferences.sounds)
+
+            Divider().overlay(Color.white.opacity(0.1))
+
+            SchedulesSection()
 
             Divider().overlay(Color.white.opacity(0.1))
 
@@ -85,6 +90,7 @@ struct SettingsView: View {
         .padding(.horizontal, 26)
         .padding(.top, 24)
         .padding(.bottom, Deep.floor + 14)
+        }
         .onAppear { login.refresh() }
     }
 

@@ -41,6 +41,18 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// A schedule just started its block.
+    func scheduleStarted(_ session: Session, list: String) {
+        Task {
+            guard await permitted() else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "\(list) is locked"
+            content.body = "Until \(Format.clockTime(session.endsAt, relativeTo: Date())), on schedule."
+            content.sound = Preferences.shared.sounds ? nil : .default
+            try? await center.add(UNNotificationRequest(identifier: Self.id(session) + ".scheduled", content: content, trigger: nil))
+        }
+    }
+
     /// A block in rounds went on a break, or a new round started.
     func phaseChanged(_ session: Session, at now: Date) {
         guard Preferences.shared.notifications, allowed, let rounds = session.rounds,
