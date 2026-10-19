@@ -17,6 +17,7 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 - Blocks stack. Twitch until tonight, then YouTube for an hour on top. A new block only adds to what's blocked; it never shortens the ones already running.
 - Open Shorts or Twitch and the tab lands on a "Blocked until 18:00" page. Regular YouTube still works.
 - Launch a game and it's closed within a second.
+- One tap covers a whole kind of distraction: under "+ Add" there are Games, Social, Video, News and Shopping. Games closes any app macOS lists as a game, even ones you've never added.
 - There's no stop button. You can ask to leave early and wait 10 minutes; then Seawall asks "End the block now?" for 2 minutes. Don't answer and the request expires. Every block has its own way out.
 - When a block ends, it tells you how many times you tried to break it.
 
@@ -40,7 +41,7 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | --- | --- |
 | Sites in Safari, Chrome, Arc, Brave and Edge | Twice a second it reads tab addresses over Apple Events (every 5 seconds for a browser in the background). If an address matches a rule, the tab is sent to a local page at `127.0.0.1:47321`. No browser extension needed. Private and Incognito windows are covered too. Arc, Brave and Edge use Chrome's scripting but haven't been tested yet. |
 | Rules | `twitch.tv` blocks the domain and its subdomains. `youtube.com/shorts` blocks only that section. A few subdomains are really their own site, so `youtube.com` leaves `music.youtube.com` open unless you add it too. |
-| Apps | Watches app launches and closes the ones on the list. If an app doesn't quit within a second, it gets killed. |
+| Apps | Watches app launches and closes the ones on the list. If an app doesn't quit within a second, it gets killed. With Games on, any app filed under Games (or a kind of game, like board games) is closed too, as is anything installed into a Steam or Epic library and launchers like Steam, Battle.net and Riot. |
 | Other browsers | Firefox, Zen, Opera, Vivaldi and the like can't be looked into, so the "Other browsers" option closes them during a block. It only shows up when one of them is installed. |
 | Several blocks | Each block keeps its own end time and attempt count. When two blocks cover the same site, the page shows the later end. |
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |

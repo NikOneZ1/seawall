@@ -38,17 +38,27 @@ public struct Session: Codable, Equatable, Sendable {
     public var sites: [String]
     public var apps: [BlockedApp]
     public var blocksOtherBrowsers: Bool
+    /// Games, Social and the rest; their sites count as this block's own.
+    public var groups: [SiteGroup] = []
     public var siteAttempts = 0
     public var appAttempts = 0
     public var unlockRequestedAt: Date?
 
-    public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool) {
+    public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool,
+                groups: [SiteGroup] = []) {
         self.startedAt = startedAt
         self.endsAt = endsAt
         self.sites = sites
         self.apps = apps
         self.blocksOtherBrowsers = blocksOtherBrowsers
+        self.groups = groups
     }
+
+    /// The sites typed in, plus every site of the block's groups.
+    public var allSites: [String] { sites + groups.flatMap(\.sites) }
+
+    /// Games are found by what they are, not by a list; see `SiteGroup.isGame`.
+    public var blocksGames: Bool { groups.contains(.games) }
 
     public var attempts: Int { siteAttempts + appAttempts }
 
@@ -56,9 +66,9 @@ public struct Session: Codable, Equatable, Sendable {
         Set((apps + (blocksOtherBrowsers ? KnownBrowsers.unreadable : [])).map(\.bundleID))
     }
 
-    /// "YouTube Shorts, Twitch, Steam, other browsers".
+    /// "Games, YouTube Shorts, Twitch, Steam, other browsers".
     public var names: String {
-        var names = sites.map { SiteRule($0)?.displayName ?? $0 } + apps.map(\.name)
+        var names = groups.map(\.title) + sites.map { SiteRule($0)?.displayName ?? $0 } + apps.map(\.name)
         if blocksOtherBrowsers { names.append("other browsers") }
         return names.joined(separator: ", ")
     }
@@ -90,6 +100,26 @@ public struct Session: Codable, Equatable, Sendable {
         guard abs(skew) >= Self.clockJumpThreshold else { return }
         endsAt += skew
         if let requested = unlockRequestedAt { unlockRequestedAt = requested + skew }
+    }
+}
+
+extension Session {
+    private enum CodingKeys: String, CodingKey {
+        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, siteAttempts, appAttempts, unlockRequestedAt
+    }
+
+    /// Blocks saved before groups existed have no `groups`.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        startedAt = try c.decode(Date.self, forKey: .startedAt)
+        endsAt = try c.decode(Date.self, forKey: .endsAt)
+        sites = try c.decode([String].self, forKey: .sites)
+        apps = try c.decode([BlockedApp].self, forKey: .apps)
+        blocksOtherBrowsers = try c.decode(Bool.self, forKey: .blocksOtherBrowsers)
+        groups = try c.decodeIfPresent([SiteGroup].self, forKey: .groups) ?? []
+        siteAttempts = try c.decodeIfPresent(Int.self, forKey: .siteAttempts) ?? 0
+        appAttempts = try c.decodeIfPresent(Int.self, forKey: .appAttempts) ?? 0
+        unlockRequestedAt = try c.decodeIfPresent(Date.self, forKey: .unlockRequestedAt)
     }
 }
 

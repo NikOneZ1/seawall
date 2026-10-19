@@ -187,6 +187,73 @@ struct AppIcon: View {
     }
 }
 
+/// A group's mark, in its own color while it's on (the chip greys it out when off).
+struct GroupIcon: View {
+    let group: SiteGroup
+
+    var body: some View {
+        Image(systemName: group.symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(group.color)
+            .frame(width: 16, height: 16)
+    }
+}
+
+extension SiteGroup {
+    var symbol: String {
+        switch self {
+        case .games: "gamecontroller.fill"
+        case .social: "bubble.left.and.bubble.right.fill"
+        case .video: "play.rectangle.fill"
+        case .news: "newspaper.fill"
+        case .shopping: "bag.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .games: Color(red: 0.72, green: 0.62, blue: 1.0)
+        case .social: Color(red: 1.0, green: 0.55, blue: 0.7)
+        case .video: Color(red: 1.0, green: 0.42, blue: 0.4)
+        case .news: Color(red: 0.6, green: 0.8, blue: 1.0)
+        case .shopping: Color(red: 1.0, green: 0.74, blue: 0.4)
+        }
+    }
+}
+
+/// An offer to add something, like a group under "+ Add": smaller than a chip, with a dashed
+/// edge so it doesn't read as one that's already in the list.
+struct SuggestionChip: View {
+    let title: String
+    var help: String?
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "plus")
+                    .font(.system(size: 9, weight: .bold))
+                Text(title)
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(Color.white.opacity(hovering ? 0.95 : 0.7))
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background {
+                Capsule()
+                    .fill(Color.white.opacity(hovering ? 0.08 : 0))
+                    .strokeBorder(Color.white.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [3, 2.5]))
+            }
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help ?? title)
+    }
+}
+
 /// The browsers "Other browsers" will actually close here, overlapping.
 struct BrowsersIcon: View {
     var body: some View {

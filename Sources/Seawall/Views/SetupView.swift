@@ -31,6 +31,7 @@ struct SetupView: View {
                     .help("Add a site or an app")
                 }
                 FlowLayout(spacing: 6) {
+                    groupChips
                     siteChips
                     if !InstalledBrowsers.unreadable.isEmpty {
                         Chip(
@@ -95,6 +96,21 @@ struct SetupView: View {
 
     // MARK: - What to lock
 
+    private var groupChips: some View {
+        ForEach($controller.config.groups) { $item in
+            Chip(
+                title: item.group.title,
+                isOn: item.enabled,
+                locked: controller.blockedUntil(group: item.group) != nil,
+                help: item.group.summary,
+                onRemove: { controller.removeGroup(item) },
+                action: { item.enabled.toggle() }
+            ) {
+                GroupIcon(group: item.group)
+            }
+        }
+    }
+
     private var siteChips: some View {
         ForEach($controller.config.sites) { $site in
             Chip(
@@ -125,16 +141,29 @@ struct SetupView: View {
     }
 
     private var addRow: some View {
-        HStack(spacing: 10) {
-            TextField("Site, e.g. reddit.com", text: $newSite)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12.5))
-                .focused($siteFieldFocused)
-                .onSubmit(addSite)
-                .padding(.horizontal, 11)
-                .frame(height: 28)
-                .overlay { Capsule().strokeBorder(Color.primary.opacity(0.14)) }
-            QuietButton(title: "Add app…") { controller.pickApps() }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                TextField("Site, e.g. reddit.com", text: $newSite)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12.5))
+                    .focused($siteFieldFocused)
+                    .onSubmit(addSite)
+                    .padding(.horizontal, 11)
+                    .frame(height: 28)
+                    .overlay { Capsule().strokeBorder(Color.primary.opacity(0.14)) }
+                QuietButton(title: "Add app…") { controller.pickApps() }
+            }
+            // Whole kinds of distraction in one tap; each one leaves this row once it's added.
+            let missing = SiteGroup.allCases.filter { group in !controller.config.groups.contains { $0.group == group } }
+            if !missing.isEmpty {
+                FlowLayout(spacing: 6) {
+                    ForEach(missing) { group in
+                        SuggestionChip(title: group.title, help: group.summary) {
+                            controller.addGroup(group)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -184,7 +213,7 @@ struct SetupView: View {
     @ViewBuilder
     private var deniedNotice: some View {
         let denied = controller.deniedBrowsers.map(\.name)
-        if !controller.config.enabledSites.isEmpty, !denied.isEmpty {
+        if controller.config.coversSites, !denied.isEmpty {
             HStack(alignment: .firstTextBaseline) {
                 Text(denied.count == 1
                      ? "\(denied[0]) access is off, so \(denied[0]) gets closed during blocks."

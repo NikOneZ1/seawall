@@ -11,6 +11,13 @@ struct SiteItem: Codable, Identifiable, Hashable {
     var id: String { pattern }
 }
 
+/// A Games, Social… chip in the list, on or off like a site.
+struct GroupItem: Codable, Identifiable, Hashable {
+    var group: SiteGroup
+    var enabled = true
+    var id: SiteGroup { group }
+}
+
 struct AppItem: Codable, Identifiable, Hashable {
     var bundleID: String
     var name: String
@@ -42,6 +49,7 @@ struct Find: Codable, Equatable {
 
 /// What the next block will cover. Running blocks keep their own copy, so editing this never loosens them.
 struct Config: Codable, Equatable {
+    var groups: [GroupItem] = []
     var sites: [SiteItem]
     var apps: [AppItem]
     var blockOtherBrowsers: Bool
@@ -58,11 +66,14 @@ struct Config: Codable, Equatable {
         )
     }
 
+    var enabledGroups: [SiteGroup] { groups.filter(\.enabled).map(\.group) }
     var enabledSites: [String] { sites.filter(\.enabled).map(\.pattern) }
     var enabledApps: [BlockedApp] { apps.filter(\.enabled).map { BlockedApp(bundleID: $0.bundleID, name: $0.name) } }
     /// "Other browsers" only counts when there's one installed for it to close.
     var closesOtherBrowsers: Bool { blockOtherBrowsers && !InstalledBrowsers.unreadable.isEmpty }
-    var isEmpty: Bool { enabledSites.isEmpty && enabledApps.isEmpty && !closesOtherBrowsers }
+    var isEmpty: Bool { enabledGroups.isEmpty && enabledSites.isEmpty && enabledApps.isEmpty && !closesOtherBrowsers }
+    /// Whether the next block covers any sites, its groups' included.
+    var coversSites: Bool { !enabledSites.isEmpty || enabledGroups.contains { !$0.sites.isEmpty } }
 }
 
 extension Config {
@@ -73,6 +84,7 @@ extension Config {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        groups = try container.decodeIfPresent([GroupItem].self, forKey: .groups) ?? []
         sites = try container.decode([SiteItem].self, forKey: .sites)
         apps = try container.decode([AppItem].self, forKey: .apps)
         blockOtherBrowsers = try container.decode(Bool.self, forKey: .blockOtherBrowsers)
@@ -198,7 +210,8 @@ final class BlockController: ObservableObject {
             endsAt: end,
             sites: config.enabledSites,
             apps: config.enabledApps,
-            blocksOtherBrowsers: config.closesOtherBrowsers
+            blocksOtherBrowsers: config.closesOtherBrowsers,
+            groups: config.enabledGroups
         ))
         persistSessions()
         applyBlocks(countRunningApps: false)
@@ -266,11 +279,11 @@ final class BlockController: ObservableObject {
         lastBrowserCheck = [:]
         rules = [:]
         for session in sessions {
-            let siteRules = session.sites.compactMap(SiteRule.init)
+            let siteRules = session.allSites.compactMap(SiteRule.init)
             if !siteRules.isEmpty { rules[session.id] = siteRules }
         }
         let bundleIDs = sessions.reduce(into: Set<String>()) { $0.formUnion($1.blockedBundleIDs) }
-        appGuard.update(bundleIDs: bundleIDs, countRunning: countRunningApps)
+        appGuard.update(bundleIDs: bundleIDs, games: sessions.contains(where: \.blocksGames), countRunning: countRunningApps)
         if sessions.isEmpty {
             Watchdog.uninstall()
         } else {
@@ -401,8 +414,10 @@ final class BlockController: ObservableObject {
     }
 
     private func countAttempt(_ app: NSRunningApplication) {
-        guard let bundleID = app.bundleIdentifier,
-              let index = sessions.lastEnding(where: { $0.blockedBundleIDs.contains(bundleID) }) else { return }
+        let bundleID = app.bundleIdentifier ?? ""
+        guard let index = sessions.lastEnding(where: { session in
+            session.blockedBundleIDs.contains(bundleID) || (session.blocksGames && AppGuard.isGame(app))
+        }) else { return }
         sessions[index].appAttempts += 1
         persistSessions()
     }
@@ -439,6 +454,18 @@ final class BlockController: ObservableObject {
 
     func blockedUntil(app bundleID: String) -> Date? {
         sessions.filter { $0.blockedBundleIDs.contains(bundleID) }.map(\.endsAt).max()
+    }
+
+    func blockedUntil(group: SiteGroup) -> Date? {
+        sessions.filter { $0.groups.contains(group) }.map(\.endsAt).max()
+    }
+
+    func addGroup(_ group: SiteGroup) {
+        if !config.groups.contains(where: { $0.group == group }) { config.groups.append(GroupItem(group: group)) }
+    }
+
+    func removeGroup(_ item: GroupItem) {
+        config.groups.removeAll { $0.group == item.group }
     }
 
     var otherBrowsersBlockedUntil: Date? {

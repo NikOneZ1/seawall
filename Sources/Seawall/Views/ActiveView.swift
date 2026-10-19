@@ -56,6 +56,7 @@ private struct SessionView: View {
                     .tracking(-1.2)
                     .shadow(color: Deep.depth.opacity(0.45), radius: 12, y: 1)
                 HStack(spacing: 5) {
+                    ForEach(session.groups) { GroupIcon(group: $0) }
                     ForEach(session.sites, id: \.self) { SiteIcon(pattern: $0) }
                     ForEach(session.apps, id: \.bundleID) { AppIcon(bundleID: $0.bundleID) }
                     if session.blocksOtherBrowsers, !InstalledBrowsers.unreadable.isEmpty { BrowsersIcon() }
