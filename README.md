@@ -76,4 +76,4 @@ Not tested yet: whether AppleScript sees tabs in private Safari windows.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Copyright © 2026 Nikita Verba. Seawall is free software under the GNU General Public License v3.0: you can use, change and share it, and anything you release that's built on it has to stay open under the same license. See [LICENSE](LICENSE).
