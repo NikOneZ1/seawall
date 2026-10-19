@@ -47,7 +47,7 @@ struct WelcomeView: View {
         .padding(.bottom, Deep.floor + 20)
         .onAppear {
             controller.refreshSafariAccess()
-            openAtLogin = LoginItem.shared.isOn || LoginItem.shared.status == .notRegistered
+            openAtLogin = LoginItem.shared.isOn || !LoginItem.shared.hasBeenChosen
         }
     }
 
@@ -134,7 +134,7 @@ struct WelcomeView: View {
             step += 1
             return
         }
-        if openAtLogin != LoginItem.shared.isOn { LoginItem.shared.set(openAtLogin) }
+        LoginItem.shared.set(openAtLogin)
         Panels.close("welcome")
     }
 }

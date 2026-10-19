@@ -12,11 +12,18 @@ final class LoginItem: ObservableObject {
     /// Registered, but switched off by hand in System Settings → Login Items.
     var needsApproval: Bool { status == .requiresApproval }
 
+    /// Whether the user has ever made the call. Until then the welcome suggests turning it on;
+    /// afterwards it shows what they chose. (An app that was never registered reports
+    /// `.notFound`, not `.notRegistered`, so the status alone can't tell.)
+    var hasBeenChosen: Bool { UserDefaults.standard.bool(forKey: Self.chosenKey) }
+    private static let chosenKey = "loginItemChosen"
+
     func set(_ on: Bool) {
+        UserDefaults.standard.set(true, forKey: Self.chosenKey)
         do {
             if on {
                 try SMAppService.mainApp.register()
-            } else {
+            } else if isOn || needsApproval {
                 try SMAppService.mainApp.unregister()
             }
         } catch {

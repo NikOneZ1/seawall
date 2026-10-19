@@ -22,6 +22,9 @@ enum Panels {
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
+        // Open on whatever Space is in front, full-screen apps included, rather than back on
+        // the desktop where the menu click can't be seen to do anything.
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         window.appearance = NSAppearance(named: .darkAqua)
         let host = NSHostingView(rootView: content()
             .frame(width: size.width, height: size.height)
