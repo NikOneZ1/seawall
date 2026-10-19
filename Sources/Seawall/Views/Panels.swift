@@ -50,7 +50,7 @@ enum Panels {
 
 extension Panels {
     static func showSettings(controller: BlockController) {
-        show("settings", title: "Seawall Settings", size: NSSize(width: 440, height: 400)) {
+        show("settings", title: "Seawall Settings", size: NSSize(width: 460, height: 640)) {
             SettingsView().environmentObject(controller)
         }
     }

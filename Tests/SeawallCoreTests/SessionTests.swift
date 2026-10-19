@@ -21,6 +21,18 @@ struct SessionTests {
         #expect(session.unlockState(at: start + 720) == .locked)
     }
 
+    @Test func aStricterBlockWaitsLongerOrNotAtAll() {
+        var session = makeSession()
+        session.earlyExit = .wait30
+        session.unlockRequestedAt = start
+        #expect(session.unlockState(at: start + 600) == .waiting(remaining: 1200))
+        #expect(session.unlockState(at: start + 1800) == .ready(expiresIn: 120))
+
+        session.earlyExit = .never
+        #expect(session.unlockState(at: start + 1800) == .locked)
+        #expect(session.unlockState(at: start + 100_000) == .locked)
+    }
+
     @Test func onlyTheOpenWindowIsReady() {
         var session = makeSession()
         session.unlockRequestedAt = start

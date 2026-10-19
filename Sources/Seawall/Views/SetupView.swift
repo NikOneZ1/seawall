@@ -10,10 +10,14 @@ struct SetupView: View {
     @State private var adding = false
     @State private var newAllowed = ""
     @State private var allowing = false
+    @State private var naming = false
+    @State private var listName = ""
+    @FocusState private var nameFieldFocused: Bool
     @FocusState private var allowFieldFocused: Bool
     @State private var holding = false
     @FocusState private var siteFieldFocused: Bool
     @ObservedObject private var dive = Dive.shared
+    @ObservedObject private var preferences = Preferences.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -24,8 +28,10 @@ struct SetupView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Lock")
-                        .font(Self.wordFont)
+                    listMenu
+                    if let current = controller.config.currentList {
+                        Deep.label(current.name)
+                    }
                     Spacer()
                     QuietButton(title: adding ? "Done" : "+ Add") {
                         adding.toggle()
@@ -48,6 +54,9 @@ struct SetupView: View {
                         }
                     }
                     appChips
+                }
+                if naming {
+                    nameRow
                 }
                 if controller.config.blocksWholeWeb {
                     exceptRow
@@ -75,7 +84,7 @@ struct SetupView: View {
 
             // The fine print shows up while you hold, when it matters, in place of Settings and Quit.
             ZStack(alignment: .leading) {
-                Text("Leaving early will take a 10-minute wait.")
+                Text(preferences.earlyExit.finePrint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .opacity(holding ? 1 : 0)
@@ -115,6 +124,63 @@ struct SetupView: View {
                 GroupIcon(group: item.group)
             }
         }
+    }
+
+    /// "Lock ⌄": saved lists to switch to, and saving what's on as a new one.
+    private var listMenu: some View {
+        let current = controller.config.currentList
+        return Menu {
+            ForEach(controller.config.lists) { list in
+                Button {
+                    controller.applyList(list)
+                } label: {
+                    if list == current { Label(list.name, systemImage: "checkmark") } else { Text(list.name) }
+                }
+            }
+            if !controller.config.lists.isEmpty { Divider() }
+            Button(current == nil ? "Save as a list…" : "Save as a new list…") {
+                listName = ""
+                naming = true
+                nameFieldFocused = true
+            }
+            if let current {
+                Button("Delete “\(current.name)”", role: .destructive) { controller.deleteList(current) }
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("Lock")
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .font(Self.wordFont)
+            .contentShape(.rect)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Saved lists, like Work or Evening")
+    }
+
+    private var nameRow: some View {
+        HStack(spacing: 10) {
+            TextField("Name this list, e.g. Work", text: $listName)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12.5))
+                .focused($nameFieldFocused)
+                .onSubmit(saveList)
+                .padding(.horizontal, 11)
+                .frame(height: 28)
+                .overlay { Capsule().strokeBorder(Color.primary.opacity(0.14)) }
+            QuietButton(title: "Save", action: saveList)
+            QuietButton(title: "Cancel") { naming = false }
+        }
+    }
+
+    private func saveList() {
+        controller.saveList(listName)
+        naming = false
     }
 
     /// With Whole web on: the sites it leaves open, and a way to add one.

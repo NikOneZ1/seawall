@@ -1,28 +1,39 @@
 import Foundation
 
 public enum BlockDuration: String, Codable, CaseIterable, Identifiable, Sendable {
-    case minutes30, hour1, hours2, hours4, untilTime
+    case minutes15, minutes30, minutes45, hour1, hours2, hours3, hours4, untilTime
 
     public var id: String { rawValue }
 
+    /// How long the fixed lengths last; `nil` for "until a set time".
+    public var interval: TimeInterval? {
+        switch self {
+        case .minutes15: 15 * 60
+        case .minutes30: 30 * 60
+        case .minutes45: 45 * 60
+        case .hour1: 60 * 60
+        case .hours2: 2 * 60 * 60
+        case .hours3: 3 * 60 * 60
+        case .hours4: 4 * 60 * 60
+        case .untilTime: nil
+        }
+    }
+
     public var title: String {
         switch self {
+        case .minutes15: "15 minutes"
         case .minutes30: "30 minutes"
+        case .minutes45: "45 minutes"
         case .hour1: "1 hour"
         case .hours2: "2 hours"
+        case .hours3: "3 hours"
         case .hours4: "4 hours"
         case .untilTime: "Until a set time…"
         }
     }
 
     public func endDate(from now: Date, until: UntilTime, calendar: Calendar = .current) -> Date {
-        switch self {
-        case .minutes30: return now + 30 * 60
-        case .hour1: return now + 60 * 60
-        case .hours2: return now + 2 * 60 * 60
-        case .hours4: return now + 4 * 60 * 60
-        case .untilTime: return until.date(from: now, calendar: calendar)
-        }
+        interval.map { now + $0 } ?? until.date(from: now, calendar: calendar)
     }
 }
 

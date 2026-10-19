@@ -13,13 +13,15 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 </p>
 
 - A lock in the menu bar: pick sites and apps, pick how long, then press and hold "Hold to lock". Holding instead of clicking means no block starts by accident.
-- How long: 30 minutes to 4 hours, or until a set time: tonight, tomorrow at 15:00, up to a week ahead.
+- How long: 15 minutes to 4 hours, or until a set time: tonight, tomorrow at 15:00, up to a week ahead.
+- Save what you lock as a list, like Work or Evening, from the "Lock ⌄" title, and switch between lists in one tap.
 - Blocks stack. Twitch until tonight, then YouTube for an hour on top. A new block only adds to what's blocked; it never shortens the ones already running.
 - Open Shorts or Twitch and the tab lands on a "Blocked until 18:00" page. Regular YouTube still works.
 - Launch a game and it's closed within a second.
 - One tap covers a whole kind of distraction: under "+ Add" there are Games, Social, Video, News and Shopping. Games closes any app macOS lists as a game, even ones you've never added.
 - Or block the whole web. "Whole web" sits under "+ Add" with the groups; once it's on, an Except row lets you keep a few sites open, like your docs or a work tool.
-- There's no stop button. You can ask to leave early and wait 10 minutes; then Seawall asks "End the block now?" for 2 minutes. Don't answer and the request expires. Every block has its own way out.
+- There's no stop button. You can ask to leave early and wait 10 minutes; then Seawall asks "End the block now?" for 2 minutes. Don't answer and the request expires. Every block has its own way out. In Settings you can make it a 30-minute wait, or no way out at all.
+- Settings also has: the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds when one starts and ends, and ⌃⌥⌘L to open the menu from anywhere.
 - When a block ends, it tells you how many times you tried to break it.
 
 ## Install

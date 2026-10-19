@@ -26,8 +26,6 @@ public enum UnlockState: Equatable, Sendable {
 /// A running block. Several can run at once, each with its own end and its own way out.
 /// Persisted to disk so they survive quitting, crashes and reboots.
 public struct Session: Codable, Equatable, Sendable {
-    /// How long you have to wait after asking to leave early.
-    public static let unlockDelay: TimeInterval = 10 * 60
     /// How long the unlock button stays once the wait is over, so it can't be kept armed "just in case".
     public static let unlockWindow: TimeInterval = 2 * 60
     /// Clock changes smaller than this are normal drift (NTP sync, waking from sleep).
@@ -42,12 +40,14 @@ public struct Session: Codable, Equatable, Sendable {
     public var groups: [SiteGroup] = []
     /// Sites left open while the whole web is blocked.
     public var allowedSites: [String] = []
+    /// The way out this block started with.
+    public var earlyExit: EarlyExit = .wait10
     public var siteAttempts = 0
     public var appAttempts = 0
     public var unlockRequestedAt: Date?
 
     public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool,
-                groups: [SiteGroup] = [], allowedSites: [String] = []) {
+                groups: [SiteGroup] = [], allowedSites: [String] = [], earlyExit: EarlyExit = .wait10) {
         self.startedAt = startedAt
         self.endsAt = endsAt
         self.sites = sites
@@ -55,6 +55,7 @@ public struct Session: Codable, Equatable, Sendable {
         self.blocksOtherBrowsers = blocksOtherBrowsers
         self.groups = groups
         self.allowedSites = allowedSites
+        self.earlyExit = earlyExit
     }
 
     /// The sites typed in, plus every site of the block's groups.
@@ -82,13 +83,13 @@ public struct Session: Codable, Equatable, Sendable {
     public func isOver(at now: Date) -> Bool { now >= endsAt }
 
     public func unlockState(at now: Date) -> UnlockState {
-        guard let requested = unlockRequestedAt else { return .locked }
+        guard let requested = unlockRequestedAt, let delay = earlyExit.wait else { return .locked }
         let waited = now.timeIntervalSince(requested)
-        if waited < Self.unlockDelay {
-            return .waiting(remaining: Self.unlockDelay - waited)
+        if waited < delay {
+            return .waiting(remaining: delay - waited)
         }
-        if waited < Self.unlockDelay + Self.unlockWindow {
-            return .ready(expiresIn: Self.unlockDelay + Self.unlockWindow - waited)
+        if waited < delay + Self.unlockWindow {
+            return .ready(expiresIn: delay + Self.unlockWindow - waited)
         }
         return .locked
     }
@@ -111,7 +112,7 @@ public struct Session: Codable, Equatable, Sendable {
 
 extension Session {
     private enum CodingKeys: String, CodingKey {
-        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, siteAttempts, appAttempts, unlockRequestedAt
+        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, earlyExit, siteAttempts, appAttempts, unlockRequestedAt
     }
 
     /// Blocks saved before groups existed have no `groups`.
@@ -124,6 +125,7 @@ extension Session {
         blocksOtherBrowsers = try c.decode(Bool.self, forKey: .blocksOtherBrowsers)
         groups = try c.decodeIfPresent([SiteGroup].self, forKey: .groups) ?? []
         allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
+        earlyExit = try c.decodeIfPresent(EarlyExit.self, forKey: .earlyExit) ?? .wait10
         siteAttempts = try c.decodeIfPresent(Int.self, forKey: .siteAttempts) ?? 0
         appAttempts = try c.decodeIfPresent(Int.self, forKey: .appAttempts) ?? 0
         unlockRequestedAt = try c.decodeIfPresent(Date.self, forKey: .unlockRequestedAt)

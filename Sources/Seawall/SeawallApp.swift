@@ -47,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// the status item that often kept an idle Seawall at a steady 2% CPU.
 @MainActor
 final class MenuBarState: ObservableObject {
-    /// "18:00" while anything is blocked.
+    /// "18:00", or "1h 24m" left, while anything is blocked.
     @Published private(set) var blockedUntil: String?
 
     func update(_ text: String?) {

@@ -47,12 +47,23 @@ struct Find: Codable, Equatable {
     var foundAt: Date
 }
 
+/// A named set of what to lock, like Work or Evening, picked from the "Lock" title.
+struct SavedList: Codable, Identifiable, Hashable {
+    var name: String
+    var groups: [SiteGroup]
+    var sites: [String]
+    var apps: [String]
+    var otherBrowsers: Bool
+    var id: String { name }
+}
+
 /// What the next block will cover. Running blocks keep their own copy, so editing this never loosens them.
 struct Config: Codable, Equatable {
     var groups: [GroupItem] = []
     var sites: [SiteItem]
     /// Left open while Whole web is on.
     var allowedSites: [String] = []
+    var lists: [SavedList] = []
     var apps: [AppItem]
     var blockOtherBrowsers: Bool
     var duration: BlockDuration
@@ -77,6 +88,29 @@ struct Config: Codable, Equatable {
     /// Whether the next block covers any sites, its groups' included.
     var coversSites: Bool { !enabledSites.isEmpty || enabledGroups.contains { !$0.sites.isEmpty || $0 == .web } }
     var blocksWholeWeb: Bool { enabledGroups.contains(.web) }
+
+    /// What's switched on right now, as a list called `name`.
+    func selection(named name: String) -> SavedList {
+        SavedList(name: name, groups: enabledGroups, sites: enabledSites,
+                  apps: apps.filter(\.enabled).map(\.bundleID), otherBrowsers: blockOtherBrowsers)
+    }
+
+    /// The saved list that's switched on right now, if any.
+    var currentList: SavedList? {
+        let now = selection(named: "")
+        return lists.first { list in
+            Set(list.groups) == Set(now.groups) && Set(list.sites) == Set(now.sites)
+                && Set(list.apps) == Set(now.apps) && list.otherBrowsers == now.otherBrowsers
+        }
+    }
+
+    /// Switches on exactly what the list holds, and everything else off.
+    mutating func apply(_ list: SavedList) {
+        for i in groups.indices { groups[i].enabled = list.groups.contains(groups[i].group) }
+        for i in sites.indices { sites[i].enabled = list.sites.contains(sites[i].pattern) }
+        for i in apps.indices { apps[i].enabled = list.apps.contains(apps[i].bundleID) }
+        blockOtherBrowsers = list.otherBrowsers
+    }
 }
 
 extension Config {
@@ -90,6 +124,7 @@ extension Config {
         groups = try container.decodeIfPresent([GroupItem].self, forKey: .groups) ?? []
         sites = try container.decode([SiteItem].self, forKey: .sites)
         allowedSites = try container.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
+        lists = try container.decodeIfPresent([SavedList].self, forKey: .lists) ?? []
         apps = try container.decode([AppItem].self, forKey: .apps)
         blockOtherBrowsers = try container.decode(Bool.self, forKey: .blockOtherBrowsers)
         duration = try container.decode(BlockDuration.self, forKey: .duration)
@@ -160,6 +195,8 @@ final class BlockController: ObservableObject {
     }
 
     func launch() {
+        Notifier.shared.setUp()
+        MenuShortcut.shared.update(Preferences.shared.shortcut)
         pageServer.finds = { [weak self] in self?.finds.map(\.kind.rawValue) ?? [] }
         pageServer.onFind = { [weak self] kind in self?.addFind(kind) ?? false }
         pageServer.start()
@@ -216,16 +253,19 @@ final class BlockController: ObservableObject {
             apps: config.enabledApps,
             blocksOtherBrowsers: config.closesOtherBrowsers,
             groups: config.enabledGroups,
-            allowedSites: config.blocksWholeWeb ? config.allowedSites : []
+            allowedSites: config.blocksWholeWeb ? config.allowedSites : [],
+            earlyExit: Preferences.shared.earlyExit
         ))
         persistSessions()
         applyBlocks(countRunningApps: false)
         tick()
+        Sounds.locked()
+        if let session = sessions.last { Notifier.shared.blockStarted(session) }
     }
 
     func requestUnlock(_ id: Session.ID) {
         guard let index = sessions.firstIndex(where: { $0.id == id }),
-              sessions[index].unlockRequestedAt == nil else { return }
+              sessions[index].unlockRequestedAt == nil, sessions[index].earlyExit.wait != nil else { return }
         sessions[index].unlockRequestedAt = Date()
         persistSessions()
     }
@@ -256,7 +296,8 @@ final class BlockController: ObservableObject {
 
         let alert = NSAlert()
         alert.messageText = "End the block now?"
-        alert.informativeText = "The 10-minute wait is over. If you stay, \(session.names) stay blocked until "
+        let minutes = Int((session.earlyExit.wait ?? 0) / 60)
+        alert.informativeText = "The \(minutes)-minute wait is over. If you stay, \(session.names) stay blocked until "
             + "\(Format.clockTime(session.endsAt, relativeTo: now)). This question goes away in 2 minutes."
         alert.addButton(withTitle: "Stay")
         alert.addButton(withTitle: "End now").hasDestructiveAction = true
@@ -323,7 +364,12 @@ final class BlockController: ObservableObject {
         if Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
             now = wall
         }
-        menuBar.update(blockedUntil.map { Format.clockTime($0, relativeTo: wall) })
+        menuBar.update(blockedUntil.map { until in
+            // "1h 24m" counts down a minute at a time and never shows 0m while anything is blocked.
+            Preferences.shared.showsTimeLeft
+                ? Format.duration((until.timeIntervalSince(wall) / 60).rounded(.up) * 60)
+                : Format.clockTime(until, relativeTo: wall)
+        })
     }
 
     private func enforceBrowsers() {
@@ -410,10 +456,11 @@ final class BlockController: ObservableObject {
         let ids = Set(ended.map(\.id))
         sessions.removeAll { ids.contains($0.id) }
         persistSessions()
+        Sounds.over()
         for session in ended {
             let summary = SessionSummary(session, endedAt: endedAt, early: early)
             lastSummary = summary
-            showSummary(summary)
+            if !Notifier.shared.blockEnded(session, summary) { showSummary(summary) }
         }
         if let lastSummary { store.save(lastSummary, as: .summary) }
     }
@@ -471,6 +518,26 @@ final class BlockController: ObservableObject {
 
     func removeGroup(_ item: GroupItem) {
         config.groups.removeAll { $0.group == item.group }
+    }
+
+    /// Saves what's switched on under `name`, replacing a list of the same name.
+    func saveList(_ name: String) {
+        let name = name.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        let list = config.selection(named: name)
+        if let i = config.lists.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+            config.lists[i] = list
+        } else {
+            config.lists.append(list)
+        }
+    }
+
+    func applyList(_ list: SavedList) {
+        config.apply(list)
+    }
+
+    func deleteList(_ list: SavedList) {
+        config.lists.removeAll { $0.name == list.name }
     }
 
     /// Sites Whole web leaves open. False if the text isn't a site.

@@ -77,5 +77,7 @@ struct FormatTests {
         #expect(BlockDuration.untilTime.endDate(from: date(7, 10), until: thisMorning, calendar: calendar) == date(7, 9))
 
         #expect(BlockDuration.hours2.endDate(from: date(7, 10), until: thisMorning, calendar: calendar) == date(7, 12))
+        #expect(BlockDuration.minutes15.endDate(from: date(7, 10), until: thisMorning, calendar: calendar) == date(7, 10, 15))
+        #expect(BlockDuration.hours3.endDate(from: date(7, 10), until: thisMorning, calendar: calendar) == date(7, 13))
     }
 }

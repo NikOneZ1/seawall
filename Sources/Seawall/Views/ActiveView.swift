@@ -1,8 +1,8 @@
 import SeawallCore
 import SwiftUI
 
-/// The menu while blocks run: each block's countdown, what it holds, and the 10-minute
-/// way out. No stop button.
+/// The menu while blocks run: each block's countdown, what it holds, and its way out (a wait,
+/// or none at all). No stop button.
 struct ActiveView: View {
     let onAdd: () -> Void
     @EnvironmentObject private var controller: BlockController
@@ -79,7 +79,7 @@ private struct SessionView: View {
     }
 }
 
-/// Attempts while locked, then the 10-minute way out once asked for.
+/// Attempts while locked, then the way out once asked for.
 private struct UnlockRow: View {
     let session: Session
     let state: UnlockState
@@ -92,8 +92,14 @@ private struct UnlockRow: View {
                 Text(session.attempts == 0 ? "No attempts yet" : "\(Format.attempts(session.attempts)) caught")
                     .foregroundStyle(.secondary)
                 Spacer()
-                QuietButton(title: "End early…") { controller.requestUnlock(session.id) }
-                    .help("Ending a block early takes a 10-minute wait")
+                if let wait = session.earlyExit.wait {
+                    QuietButton(title: "End early…") { controller.requestUnlock(session.id) }
+                        .help("Ending this block early takes a \(Int(wait / 60))-minute wait")
+                } else {
+                    Text("No way out")
+                        .foregroundStyle(.tertiary)
+                        .help("This block was locked with no way to end it early")
+                }
 
             case .waiting(let remaining):
                 Text("Opens in \(Format.countdown(remaining)). Still want out?")
