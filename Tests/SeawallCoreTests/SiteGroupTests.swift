@@ -3,7 +3,7 @@ import Testing
 @testable import SeawallCore
 
 struct SiteGroupTests {
-    @Test(arguments: SiteGroup.allCases)
+    @Test(arguments: SiteGroup.allCases.filter { $0 != .web })
     func everySiteIsAValidRule(_ group: SiteGroup) {
         #expect(!group.sites.isEmpty)
         for site in group.sites {

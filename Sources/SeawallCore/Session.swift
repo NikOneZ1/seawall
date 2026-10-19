@@ -40,18 +40,21 @@ public struct Session: Codable, Equatable, Sendable {
     public var blocksOtherBrowsers: Bool
     /// Games, Social and the rest; their sites count as this block's own.
     public var groups: [SiteGroup] = []
+    /// Sites left open while the whole web is blocked.
+    public var allowedSites: [String] = []
     public var siteAttempts = 0
     public var appAttempts = 0
     public var unlockRequestedAt: Date?
 
     public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool,
-                groups: [SiteGroup] = []) {
+                groups: [SiteGroup] = [], allowedSites: [String] = []) {
         self.startedAt = startedAt
         self.endsAt = endsAt
         self.sites = sites
         self.apps = apps
         self.blocksOtherBrowsers = blocksOtherBrowsers
         self.groups = groups
+        self.allowedSites = allowedSites
     }
 
     /// The sites typed in, plus every site of the block's groups.
@@ -60,10 +63,13 @@ public struct Session: Codable, Equatable, Sendable {
     /// Games are found by what they are, not by a list; see `SiteGroup.isGame`.
     public var blocksGames: Bool { groups.contains(.games) }
 
+    public var blocksWholeWeb: Bool { groups.contains(.web) }
+
     public var attempts: Int { siteAttempts + appAttempts }
 
     public var blockedBundleIDs: Set<String> {
-        Set((apps + (blocksOtherBrowsers ? KnownBrowsers.unreadable : [])).map(\.bundleID))
+        // With the whole web blocked, a browser Seawall can't look into is just a way around it.
+        Set((apps + (blocksOtherBrowsers || blocksWholeWeb ? KnownBrowsers.unreadable : [])).map(\.bundleID))
     }
 
     /// "Games, YouTube Shorts, Twitch, Steam, other browsers".
@@ -105,7 +111,7 @@ public struct Session: Codable, Equatable, Sendable {
 
 extension Session {
     private enum CodingKeys: String, CodingKey {
-        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, siteAttempts, appAttempts, unlockRequestedAt
+        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, siteAttempts, appAttempts, unlockRequestedAt
     }
 
     /// Blocks saved before groups existed have no `groups`.
@@ -117,6 +123,7 @@ extension Session {
         apps = try c.decode([BlockedApp].self, forKey: .apps)
         blocksOtherBrowsers = try c.decode(Bool.self, forKey: .blocksOtherBrowsers)
         groups = try c.decodeIfPresent([SiteGroup].self, forKey: .groups) ?? []
+        allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
         siteAttempts = try c.decodeIfPresent(Int.self, forKey: .siteAttempts) ?? 0
         appAttempts = try c.decodeIfPresent(Int.self, forKey: .appAttempts) ?? 0
         unlockRequestedAt = try c.decodeIfPresent(Date.self, forKey: .unlockRequestedAt)

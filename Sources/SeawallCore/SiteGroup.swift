@@ -1,9 +1,10 @@
 import Foundation
 
 /// Ready-made groups for "Lock": one chip covers a whole kind of distraction, so you don't have
-/// to think of every site. Games also covers apps, found by what they are rather than by name.
+/// to think of every site. Games also covers apps, found by what they are rather than by name,
+/// and Whole web covers every site except the ones you allow.
 public enum SiteGroup: String, Codable, CaseIterable, Identifiable, Sendable {
-    case games, social, video, news, shopping
+    case games, social, video, news, shopping, web
 
     public var id: String { rawValue }
 
@@ -14,6 +15,7 @@ public enum SiteGroup: String, Codable, CaseIterable, Identifiable, Sendable {
         case .video: "Video"
         case .news: "News"
         case .shopping: "Shopping"
+        case .web: "Whole web"
         }
     }
 
@@ -25,6 +27,7 @@ public enum SiteGroup: String, Codable, CaseIterable, Identifiable, Sendable {
         case .video: "YouTube, Twitch, Netflix, Kick, Prime Video, Disney+ and more"
         case .news: "Hacker News, Google News, BBC, CNN, The New York Times, The Guardian and more"
         case .shopping: "Amazon, eBay, AliExpress, Temu, Etsy and more"
+        case .web: "Every site in every browser, except the ones you allow"
         }
     }
 
@@ -46,6 +49,9 @@ public enum SiteGroup: String, Codable, CaseIterable, Identifiable, Sendable {
         case .shopping:
             ["amazon.com", "amazon.co.uk", "amazon.de", "ebay.com", "aliexpress.com", "temu.com", "etsy.com",
              "walmart.com", "shein.com", "target.com"]
+        case .web:
+            // Not a list: see `WebFilter`.
+            []
         }
     }
 

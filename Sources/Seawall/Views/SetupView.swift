@@ -8,6 +8,9 @@ struct SetupView: View {
     @EnvironmentObject private var controller: BlockController
     @State private var newSite = ""
     @State private var adding = false
+    @State private var newAllowed = ""
+    @State private var allowing = false
+    @FocusState private var allowFieldFocused: Bool
     @State private var holding = false
     @FocusState private var siteFieldFocused: Bool
     @ObservedObject private var dive = Dive.shared
@@ -45,6 +48,9 @@ struct SetupView: View {
                         }
                     }
                     appChips
+                }
+                if controller.config.blocksWholeWeb {
+                    exceptRow
                 }
                 if adding {
                     addRow
@@ -108,6 +114,56 @@ struct SetupView: View {
             ) {
                 GroupIcon(group: item.group)
             }
+        }
+    }
+
+    /// With Whole web on: the sites it leaves open, and a way to add one.
+    private var exceptRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Deep.label("Except")
+            FlowLayout(spacing: 6) {
+                ForEach(controller.config.allowedSites, id: \.self) { pattern in
+                    Chip(
+                        title: SiteRule(pattern)?.displayName ?? pattern,
+                        isOn: true,
+                        help: "\(pattern) stays open. Right-click to remove.",
+                        onRemove: { controller.disallowSite(pattern) },
+                        action: {}
+                    ) {
+                        SiteIcon(pattern: pattern)
+                    }
+                }
+                if !allowing {
+                    SuggestionChip(title: "Allow a site", help: "A site to keep open while the rest of the web is blocked") {
+                        allowing = true
+                        allowFieldFocused = true
+                    }
+                }
+            }
+            if allowing {
+                HStack(spacing: 10) {
+                    TextField("Site to keep open, e.g. docs.google.com", text: $newAllowed)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12.5))
+                        .focused($allowFieldFocused)
+                        .onSubmit(allowSite)
+                        .padding(.horizontal, 11)
+                        .frame(height: 28)
+                        .overlay { Capsule().strokeBorder(Color.primary.opacity(0.14)) }
+                    QuietButton(title: "Done") {
+                        allowSite()
+                        allowing = false
+                    }
+                }
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private func allowSite() {
+        if controller.allowSite(newAllowed) {
+            newAllowed = ""
+            allowFieldFocused = true
         }
     }
 

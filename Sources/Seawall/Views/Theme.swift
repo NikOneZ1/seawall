@@ -207,6 +207,7 @@ extension SiteGroup {
         case .video: "play.rectangle.fill"
         case .news: "newspaper.fill"
         case .shopping: "bag.fill"
+        case .web: "globe"
         }
     }
 
@@ -217,6 +218,7 @@ extension SiteGroup {
         case .video: Color(red: 1.0, green: 0.42, blue: 0.4)
         case .news: Color(red: 0.6, green: 0.8, blue: 1.0)
         case .shopping: Color(red: 1.0, green: 0.74, blue: 0.4)
+        case .web: Deep.accent
         }
     }
 }

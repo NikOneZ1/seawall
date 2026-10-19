@@ -51,6 +51,8 @@ struct Find: Codable, Equatable {
 struct Config: Codable, Equatable {
     var groups: [GroupItem] = []
     var sites: [SiteItem]
+    /// Left open while Whole web is on.
+    var allowedSites: [String] = []
     var apps: [AppItem]
     var blockOtherBrowsers: Bool
     var duration: BlockDuration
@@ -73,7 +75,8 @@ struct Config: Codable, Equatable {
     var closesOtherBrowsers: Bool { blockOtherBrowsers && !InstalledBrowsers.unreadable.isEmpty }
     var isEmpty: Bool { enabledGroups.isEmpty && enabledSites.isEmpty && enabledApps.isEmpty && !closesOtherBrowsers }
     /// Whether the next block covers any sites, its groups' included.
-    var coversSites: Bool { !enabledSites.isEmpty || enabledGroups.contains { !$0.sites.isEmpty } }
+    var coversSites: Bool { !enabledSites.isEmpty || enabledGroups.contains { !$0.sites.isEmpty || $0 == .web } }
+    var blocksWholeWeb: Bool { enabledGroups.contains(.web) }
 }
 
 extension Config {
@@ -86,6 +89,7 @@ extension Config {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         groups = try container.decodeIfPresent([GroupItem].self, forKey: .groups) ?? []
         sites = try container.decode([SiteItem].self, forKey: .sites)
+        allowedSites = try container.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
         apps = try container.decode([AppItem].self, forKey: .apps)
         blockOtherBrowsers = try container.decode(Bool.self, forKey: .blockOtherBrowsers)
         duration = try container.decode(BlockDuration.self, forKey: .duration)
@@ -124,8 +128,8 @@ final class BlockController: ObservableObject {
     private let appGuard = AppGuard()
     private let pageServer = BlockPageServer()
     private var clock = ClockWatch()
-    /// Site rules of each running block; blocks without sites are left out.
-    private var rules: [Session.ID: [SiteRule]] = [:]
+    /// What each running block keeps closed in browsers; blocks that only cover apps are left out.
+    private var filters: [Session.ID: WebFilter] = [:]
     /// Tab+URL → when we redirected it, so a redirect still in flight isn't counted twice.
     private var recentRedirects: [String: Date] = [:]
     /// The "End now?" alert on screen for a block whose wait is over.
@@ -211,7 +215,8 @@ final class BlockController: ObservableObject {
             sites: config.enabledSites,
             apps: config.enabledApps,
             blocksOtherBrowsers: config.closesOtherBrowsers,
-            groups: config.enabledGroups
+            groups: config.enabledGroups,
+            allowedSites: config.blocksWholeWeb ? config.allowedSites : []
         ))
         persistSessions()
         applyBlocks(countRunningApps: false)
@@ -277,10 +282,10 @@ final class BlockController: ObservableObject {
     private func applyBlocks(countRunningApps: Bool) {
         // A new block checks the browsers right away, wherever they are.
         lastBrowserCheck = [:]
-        rules = [:]
+        filters = [:]
         for session in sessions {
-            let siteRules = session.allSites.compactMap(SiteRule.init)
-            if !siteRules.isEmpty { rules[session.id] = siteRules }
+            let filter = WebFilter(session)
+            if !filter.isEmpty { filters[session.id] = filter }
         }
         let bundleIDs = sessions.reduce(into: Set<String>()) { $0.formUnion($1.blockedBundleIDs) }
         appGuard.update(bundleIDs: bundleIDs, games: sessions.contains(where: \.blocksGames), countRunning: countRunningApps)
@@ -322,7 +327,7 @@ final class BlockController: ObservableObject {
     }
 
     private func enforceBrowsers() {
-        guard !rules.isEmpty else { return }
+        guard !filters.isEmpty else { return }
         for browser in browsers where browser.isRunning {
             enforce(browser)
         }
@@ -364,7 +369,7 @@ final class BlockController: ObservableObject {
             var updated = sessions
             for tab in tabs {
                 guard let index = updated.lastEnding(where: { session in
-                    rules[session.id]?.contains { $0.matches(tab.url) } == true
+                    filters[session.id]?.blocks(tab.url) == true
                 }) else { continue }
                 let key = "\(id)/\(tab.windowID)/\(tab.index)/\(tab.url.absoluteString)"
                 if recentRedirects[key] == nil { updated[index].siteAttempts += 1 }
@@ -466,6 +471,17 @@ final class BlockController: ObservableObject {
 
     func removeGroup(_ item: GroupItem) {
         config.groups.removeAll { $0.group == item.group }
+    }
+
+    /// Sites Whole web leaves open. False if the text isn't a site.
+    func allowSite(_ pattern: String) -> Bool {
+        guard let rule = SiteRule(pattern) else { return false }
+        if !config.allowedSites.contains(rule.description) { config.allowedSites.append(rule.description) }
+        return true
+    }
+
+    func disallowSite(_ pattern: String) {
+        config.allowedSites.removeAll { $0 == pattern }
     }
 
     var otherBrowsersBlockedUntil: Date? {
