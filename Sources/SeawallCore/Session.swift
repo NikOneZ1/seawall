@@ -53,7 +53,7 @@ public struct Session: Codable, Equatable, Sendable {
     public var attempts: Int { siteAttempts + appAttempts }
 
     public var blockedBundleIDs: Set<String> {
-        Set((apps + (blocksOtherBrowsers ? KnownBrowsers.all : [])).map(\.bundleID))
+        Set((apps + (blocksOtherBrowsers ? KnownBrowsers.unreadable : [])).map(\.bundleID))
     }
 
     /// "YouTube Shorts, Twitch, Steam, other browsers".

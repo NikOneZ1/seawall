@@ -69,9 +69,12 @@ struct SessionTests {
         #expect(session.blockedBundleIDs == ["com.valvesoftware.steam"])
 
         session.blocksOtherBrowsers = true
-        #expect(session.blockedBundleIDs.contains("com.google.Chrome"))
+        #expect(session.blockedBundleIDs.contains("org.mozilla.firefox"))
         #expect(session.blockedBundleIDs.contains("com.valvesoftware.steam"))
-        #expect(!session.blockedBundleIDs.contains("com.apple.Safari"))
+        // Browsers whose tabs can be read get the block page instead of being closed.
+        for browser in KnownBrowsers.readable {
+            #expect(!session.blockedBundleIDs.contains(browser.bundleID))
+        }
     }
 
     @Test func overlappingBlocksCountTheAttemptOnTheOneEndingLast() {

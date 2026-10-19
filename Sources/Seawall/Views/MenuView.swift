@@ -38,7 +38,7 @@ struct MenuView: View {
         }
         .environment(\.colorScheme, .dark)
         .onAppear {
-            controller.refreshSafariAccess()
+            controller.refreshBrowserAccess()
             Water.shared.opened()
         }
         .onChange(of: controller.sessions.isEmpty) { addingBlock = false }

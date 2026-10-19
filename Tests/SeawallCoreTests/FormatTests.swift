@@ -20,6 +20,13 @@ struct FormatTests {
         #expect(Format.attempts(n) == expected)
     }
 
+    @Test func lists() {
+        #expect(Format.list([]) == "")
+        #expect(Format.list(["Safari"]) == "Safari")
+        #expect(Format.list(["Safari", "Chrome"]) == "Safari and Chrome")
+        #expect(Format.list(["Safari", "Chrome", "Arc"]) == "Safari, Chrome and Arc")
+    }
+
     @Test func countdown() {
         #expect(Format.countdown(600) == "10:00")
         #expect(Format.countdown(599.2) == "10:00")

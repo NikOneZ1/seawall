@@ -1,4 +1,4 @@
-/// The page a blocked Safari tab lands on: murky water that settles. Trying the site stirred it up,
+/// The page a blocked tab lands on: murky water that settles. Trying the site stirred it up,
 /// and it clears if you leave it alone; more attempts stir it harder. A small find waits in the sand.
 /// Query: `until` (unix seconds), `url` (what was blocked), `n` (attempts so far, this one included).
 let blockPageHTML = #"""

@@ -1,7 +1,7 @@
 import Foundation
 import Network
 
-/// Serves the "blocked" page on localhost. Blocked Safari tabs are sent here; the page
+/// Serves the "blocked" page on localhost. Blocked browser tabs are sent here; the page
 /// gets the end time and the original URL in the query and does the rest itself.
 /// It also reads and adds its finds here: `GET /finds`, `POST /find?kind=star`.
 @MainActor

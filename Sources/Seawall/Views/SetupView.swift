@@ -32,14 +32,16 @@ struct SetupView: View {
                 }
                 FlowLayout(spacing: 6) {
                     siteChips
-                    Chip(
-                        title: "Other browsers",
-                        isOn: controller.config.blockOtherBrowsers,
-                        locked: controller.otherBrowsersBlockedUntil != nil,
-                        help: "Only Safari tabs can be filtered, so other browsers get closed during the block",
-                        action: { controller.config.blockOtherBrowsers.toggle() }
-                    ) {
-                        BrowsersIcon()
+                    if !InstalledBrowsers.unreadable.isEmpty {
+                        Chip(
+                            title: "Other browsers",
+                            isOn: controller.config.blockOtherBrowsers,
+                            locked: controller.otherBrowsersBlockedUntil != nil,
+                            help: "\(Format.list(InstalledBrowsers.unreadable.map(\.name))) can't be looked into, so they get closed during the block",
+                            action: { controller.config.blockOtherBrowsers.toggle() }
+                        ) {
+                            BrowsersIcon()
+                        }
                     }
                     appChips
                 }
@@ -181,9 +183,12 @@ struct SetupView: View {
 
     @ViewBuilder
     private var deniedNotice: some View {
-        if !controller.config.enabledSites.isEmpty, controller.safariAccess == .denied {
+        let denied = controller.deniedBrowsers.map(\.name)
+        if !controller.config.enabledSites.isEmpty, !denied.isEmpty {
             HStack(alignment: .firstTextBaseline) {
-                Text("Safari access is off, so Safari gets closed during blocks.")
+                Text(denied.count == 1
+                     ? "\(denied[0]) access is off, so \(denied[0]) gets closed during blocks."
+                     : "\(Format.list(denied)) access is off, so they get closed during blocks.")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)

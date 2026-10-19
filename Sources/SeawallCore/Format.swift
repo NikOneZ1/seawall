@@ -10,6 +10,13 @@ public enum Format {
         "\(n) \(plural(n, "attempt", "attempts"))"
     }
 
+    /// "Safari", "Safari and Chrome", "Safari, Chrome and Arc".
+    public static func list(_ items: [String]) -> String {
+        guard let last = items.last else { return "" }
+        guard items.count > 1 else { return last }
+        return items.dropLast().joined(separator: ", ") + " and " + last
+    }
+
     /// "1:05:09", "9:41" or "2d 1:05:09". Rounds up, so a fresh 10-minute wait reads "10:00", not "9:59".
     public static func countdown(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds.rounded(.up)))

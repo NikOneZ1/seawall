@@ -1,6 +1,7 @@
+import SeawallCore
 import SwiftUI
 
-/// Shown once, on the first launch: what Seawall does, Safari access asked for now rather than
+/// Shown once, on the first launch: what Seawall does, browser access asked for now rather than
 /// in the middle of the first block, and whether to open at login.
 struct WelcomeView: View {
     @EnvironmentObject private var controller: BlockController
@@ -22,7 +23,7 @@ struct WelcomeView: View {
             Group {
                 switch step {
                 case 0: intro
-                case 1: safari
+                case 1: browsers
                 default: login
                 }
             }
@@ -46,7 +47,7 @@ struct WelcomeView: View {
         .padding(.top, 40)
         .padding(.bottom, Deep.floor + 20)
         .onAppear {
-            controller.refreshSafariAccess()
+            controller.refreshBrowserAccess()
             openAtLogin = LoginItem.shared.isOn || !LoginItem.shared.hasBeenChosen
         }
     }
@@ -63,30 +64,33 @@ struct WelcomeView: View {
         }
     }
 
-    private var safari: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            title("Let Seawall see Safari tabs")
-            paragraph("During a block, Seawall reads the address of each Safari tab and swaps blocked ones for a calm page. "
-                + "Without this it can only close Safari altogether. macOS asks once; Safari opens in the background so it can.")
+    private var browsers: some View {
+        let names = Format.list(controller.installedBrowsers.map(\.name))
+        let denied = controller.deniedBrowsers.map(\.name)
+        let allGranted = controller.installedBrowsers.allSatisfy { controller.browserAccess[$0.bundleID] == .granted }
+        return VStack(alignment: .leading, spacing: 14) {
+            title("Let Seawall see your tabs")
+            paragraph("During a block, Seawall reads the address of each tab in \(names) and swaps blocked ones for a calm page. "
+                + "Without this it can only close the browser. macOS asks once for each; a closed browser opens in the background so it can.")
 
-            switch controller.safariAccess {
-            case .granted:
-                Label("Safari access is on", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Deep.accent)
-            case .denied:
+            if !denied.isEmpty {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Safari access is off. You can turn it on under Automation.")
+                    Text("\(Format.list(denied)) access is off. You can turn it on under Automation.")
                         .font(.system(size: 12.5))
                         .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     QuietButton(title: "Open System Settings…") { controller.openAutomationSettings() }
                 }
-            case .unknown:
-                Button(asking ? "Waiting for macOS…" : "Allow Safari access") {
+            } else if allGranted {
+                Label("Access is on for \(names)", systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Deep.accent)
+            } else {
+                Button(asking ? "Waiting for macOS…" : "Allow access") {
                     asking = true
                     Task {
-                        await controller.askForSafariAccess()
+                        await controller.askForBrowserAccess()
                         asking = false
                     }
                 }

@@ -190,7 +190,7 @@ struct AppIcon: View {
 /// The browsers "Other browsers" will actually close here, overlapping.
 struct BrowsersIcon: View {
     var body: some View {
-        let icons = InstalledBrowsers.all.prefix(3)
+        let icons = InstalledBrowsers.unreadable.prefix(3)
         if icons.isEmpty {
             Image(systemName: "globe")
                 .font(.system(size: 13))
@@ -209,9 +209,10 @@ struct BrowsersIcon: View {
     }
 }
 
-/// Installed browsers other than Safari.
+/// Installed browsers whose tabs can't be read, so "Other browsers" closes them. With none
+/// installed the chip has nothing to do and stays out of the menu.
 enum InstalledBrowsers {
-    static let all: [(name: String, icon: NSImage)] = KnownBrowsers.all.compactMap { browser in
+    static let unreadable: [(name: String, icon: NSImage)] = KnownBrowsers.unreadable.compactMap { browser in
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser.bundleID) else { return nil }
         return (browser.name, NSWorkspace.shared.icon(forFile: url.path))
     }

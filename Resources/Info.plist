@@ -29,7 +29,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Seawall reads Safari tab addresses to close blocked sites while a block is running.</string>
+	<string>Seawall reads tab addresses so it can swap blocked sites for a calm page while a block is running.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

@@ -60,7 +60,9 @@ struct Config: Codable, Equatable {
 
     var enabledSites: [String] { sites.filter(\.enabled).map(\.pattern) }
     var enabledApps: [BlockedApp] { apps.filter(\.enabled).map { BlockedApp(bundleID: $0.bundleID, name: $0.name) } }
-    var isEmpty: Bool { enabledSites.isEmpty && enabledApps.isEmpty && !blockOtherBrowsers }
+    /// "Other browsers" only counts when there's one installed for it to close.
+    var closesOtherBrowsers: Bool { blockOtherBrowsers && !InstalledBrowsers.unreadable.isEmpty }
+    var isEmpty: Bool { enabledSites.isEmpty && enabledApps.isEmpty && !closesOtherBrowsers }
 }
 
 extension Config {
@@ -95,7 +97,8 @@ final class BlockController: ObservableObject {
     /// Running blocks, oldest first.
     @Published private(set) var sessions: [Session]
     @Published private(set) var lastSummary: SessionSummary?
-    @Published private(set) var safariAccess: SafariAccess = .unknown
+    /// Automation access per readable browser, by bundle ID; missing until checked.
+    @Published private(set) var browserAccess: [String: BrowserAccess] = [:]
     /// Picked up on the block page, oldest first.
     @Published private(set) var finds: [Find]
     /// Ticks once a second for countdowns.
@@ -104,7 +107,8 @@ final class BlockController: ObservableObject {
     let menuBar = MenuBarState()
 
     private let store = Store()
-    private let safari = SafariGuard()
+    /// Safari and the Chromium browsers whose blocked tabs get the block page.
+    let browsers = KnownBrowsers.readable.map(BrowserGuard.init)
     private let appGuard = AppGuard()
     private let pageServer = BlockPageServer()
     private var clock = ClockWatch()
@@ -115,9 +119,15 @@ final class BlockController: ObservableObject {
     /// The "End now?" alert on screen for a block whose wait is over.
     private var unlockPrompt: (id: Session.ID, alert: NSAlert)?
     private var timer: Timer?
-    /// When Safari's tabs were last read; see `enforceSafari`.
-    private var lastSafariCheck = Date.distantPast
-    private static let backgroundSafariInterval: TimeInterval = 5
+    /// When each browser's tabs were last read; see `enforce(_:)`.
+    private var lastBrowserCheck: [String: Date] = [:]
+    /// Reads in a row that failed for a reason other than permission, per browser.
+    private var browserFailures: [String: Int] = [:]
+    /// Browsers whose "Seawall wants to control …" question is on screen right now.
+    private var askingAccess: Set<String> = []
+    private static let backgroundBrowserInterval: TimeInterval = 5
+    /// A browser that stops answering can't be watched, so it's closed like one we may not look at.
+    private static let failuresBeforeClosing = 4
 
     init() {
         config = store.load(Config.self, from: .config) ?? .initial
@@ -148,7 +158,7 @@ final class BlockController: ObservableObject {
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
 
-        refreshSafariAccess()
+        refreshBrowserAccess()
         if !sessions.isEmpty {
             finish(sessions.filter { $0.isOver(at: Date()) }, early: false)
             applyBlocks(countRunningApps: true)
@@ -188,7 +198,7 @@ final class BlockController: ObservableObject {
             endsAt: end,
             sites: config.enabledSites,
             apps: config.enabledApps,
-            blocksOtherBrowsers: config.blockOtherBrowsers
+            blocksOtherBrowsers: config.closesOtherBrowsers
         ))
         persistSessions()
         applyBlocks(countRunningApps: false)
@@ -252,8 +262,8 @@ final class BlockController: ObservableObject {
     /// Points the guards at everything the running blocks cover.
     /// `countRunningApps`: see `AppGuard.update`.
     private func applyBlocks(countRunningApps: Bool) {
-        // A new block checks Safari right away, wherever it is.
-        lastSafariCheck = .distantPast
+        // A new block checks the browsers right away, wherever they are.
+        lastBrowserCheck = [:]
         rules = [:]
         for session in sessions {
             let siteRules = session.sites.compactMap(SiteRule.init)
@@ -288,7 +298,7 @@ final class BlockController: ObservableObject {
                 applyBlocks(countRunningApps: false)
             }
             appGuard.sweep()
-            enforceSafari()
+            enforceBrowsers()
         }
         promptForUnlock(at: wall)
 
@@ -298,17 +308,43 @@ final class BlockController: ObservableObject {
         menuBar.update(blockedUntil.map { Format.clockTime($0, relativeTo: wall) })
     }
 
-    private func enforceSafari() {
-        guard !rules.isEmpty, SafariGuard.isRunning else { return }
-        // Asking Safari for its tabs is most of what a block costs. In front it's asked on every
-        // tick; behind other apps, where nobody is looking at it, every few seconds is enough.
-        let checkedAt = Date()
-        if !SafariGuard.isFrontmost, checkedAt.timeIntervalSince(lastSafariCheck) < Self.backgroundSafariInterval { return }
-        lastSafariCheck = checkedAt
+    private func enforceBrowsers() {
+        guard !rules.isEmpty else { return }
+        for browser in browsers where browser.isRunning {
+            enforce(browser)
+        }
+    }
 
-        switch safari.tabs() {
+    private func enforce(_ browser: BrowserGuard) {
+        let id = browser.bundleID
+        // Reading tabs before the user has answered "Seawall wants to control …" would wait on
+        // that question with the whole app frozen, every other browser included. So the
+        // question is asked off to the side, and this browser is read once it's answered.
+        if browserAccess[id] == nil || browserAccess[id] == .unknown {
+            if let access = BrowserGuard.determineAccess(id, ask: false) { setAccess(access, for: browser) }
+            if browserAccess[id] != .granted, browserAccess[id] != .denied {
+                guard !askingAccess.contains(id) else { return }
+                askingAccess.insert(id)
+                Task {
+                    await ask(browser)
+                    askingAccess.remove(id)
+                }
+                return
+            }
+        }
+
+        // Asking a browser for its tabs is most of what a block costs. In front it's asked on
+        // every tick; behind other apps, where nobody is looking at it, every few seconds is enough.
+        let checkedAt = Date()
+        if !browser.isFrontmost, checkedAt.timeIntervalSince(lastBrowserCheck[id] ?? .distantPast) < Self.backgroundBrowserInterval {
+            return
+        }
+        lastBrowserCheck[id] = checkedAt
+
+        switch browser.tabs() {
         case .success(let tabs):
-            setSafariAccess(.granted)
+            browserFailures[id] = 0
+            setAccess(.granted, for: browser)
             let cutoff = Date().addingTimeInterval(-5)
             recentRedirects = recentRedirects.filter { $0.value > cutoff }
 
@@ -317,11 +353,11 @@ final class BlockController: ObservableObject {
                 guard let index = updated.lastEnding(where: { session in
                     rules[session.id]?.contains { $0.matches(tab.url) } == true
                 }) else { continue }
-                let key = "\(tab.windowID)/\(tab.index)/\(tab.url.absoluteString)"
+                let key = "\(id)/\(tab.windowID)/\(tab.index)/\(tab.url.absoluteString)"
                 if recentRedirects[key] == nil { updated[index].siteAttempts += 1 }
                 recentRedirects[key] = Date()
                 let page = pageServer.pageURL(until: updated[index].endsAt, blocked: tab.url, attempts: updated[index].attempts)
-                safari.redirect(tab, to: page)
+                browser.redirect(tab, to: page)
             }
             if updated != sessions {
                 sessions = updated
@@ -329,13 +365,22 @@ final class BlockController: ObservableObject {
             }
 
         case .failure(.notPermitted):
-            // No permission means no way to filter tabs — so no Safari until the block ends.
-            setSafariAccess(.denied)
-            safari.quitSafari()
+            // No permission means no way to filter tabs, so no browser until the block ends.
+            setAccess(.denied, for: browser)
+            browser.quit()
 
         case .failure(.failed(let code)):
-            // -600: Safari quit mid-poll; -1712: timeout. Next tick will retry.
-            if code != -600 { log.debug("Safari poll failed: \(code)") }
+            // -600 and -609: the browser quit mid-read. Anything else is retried on the next
+            // check, but a browser that keeps failing can't be left open around the block.
+            guard code != -600, code != -609 else { return }
+            let failures = (browserFailures[id] ?? 0) + 1
+            browserFailures[id] = failures
+            log.debug("\(browser.name, privacy: .public) read failed: \(code)")
+            if failures >= Self.failuresBeforeClosing {
+                log.error("\(browser.name, privacy: .public) keeps failing (\(code)), closing it during the block")
+                browserFailures[id] = 0
+                browser.quit()
+            }
         }
     }
 
@@ -435,26 +480,41 @@ final class BlockController: ObservableObject {
         }
     }
 
-    // MARK: - Safari permission
+    // MARK: - Browser permission
 
-    func refreshSafariAccess() {
-        if let access = SafariGuard.determineAccess(ask: false) { setSafariAccess(access) }
+    /// Readable browsers on this Mac, Safari first.
+    var installedBrowsers: [BrowserGuard] { browsers.filter(\.isInstalled) }
+
+    /// Installed browsers that said no to Automation; they get closed during blocks with sites.
+    var deniedBrowsers: [BrowserGuard] { installedBrowsers.filter { browserAccess[$0.bundleID] == .denied } }
+
+    func refreshBrowserAccess() {
+        for browser in installedBrowsers {
+            if let access = BrowserGuard.determineAccess(browser.bundleID, ask: false) { setAccess(access, for: browser) }
+        }
     }
 
-    /// From the welcome: shows the "control Safari" prompt now rather than in the middle of a
-    /// block. macOS only asks about a running app, so Safari is opened in the background first.
-    func askForSafariAccess() async {
-        if SafariGuard.determineAccess(ask: false) == nil,
-           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: SafariGuard.bundleID) {
+    /// From the welcome: shows each browser's "control …" prompt now rather than in the middle of
+    /// a block. macOS only asks about a running app, so a closed browser is opened in the background first.
+    func askForBrowserAccess() async {
+        for browser in installedBrowsers where browserAccess[browser.bundleID] != .granted {
+            await ask(browser)
+        }
+    }
+
+    private func ask(_ browser: BrowserGuard) async {
+        let id = browser.bundleID
+        if BrowserGuard.determineAccess(id, ask: false) == nil,
+           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = false
             configuration.hides = true
             _ = try? await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
         }
-        // A Safari that's still starting up isn't ready for the question; give it a few seconds.
+        // A browser that's still starting up isn't ready for the question; give it a few seconds.
         for _ in 0..<20 {
-            if let access = await Task.detached(operation: { SafariGuard.determineAccess(ask: true) }).value {
-                setSafariAccess(access)
+            if let access = await Task.detached(operation: { BrowserGuard.determineAccess(id, ask: true) }).value {
+                setAccess(access, for: browser)
                 return
             }
             try? await Task.sleep(for: .milliseconds(250))
@@ -466,7 +526,7 @@ final class BlockController: ObservableObject {
         NSWorkspace.shared.open(url)
     }
 
-    private func setSafariAccess(_ access: SafariAccess) {
-        if safariAccess != access { safariAccess = access }
+    private func setAccess(_ access: BrowserAccess, for browser: BrowserGuard) {
+        if browserAccess[browser.bundleID] != access { browserAccess[browser.bundleID] = access }
     }
 }

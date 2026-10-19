@@ -1,6 +1,6 @@
 # Seawall
 
-A lock for Safari and apps on macOS. Hold "Lock" for a second, and Shorts, Twitch and games stay closed until evening. No changing your mind five seconds later.
+A lock for websites and apps on macOS. Hold "Lock" for a second, and Shorts, Twitch and games stay closed until evening. No changing your mind five seconds later.
 
 A free, open-source alternative to Cold Turkey Pro and Freedom.
 
@@ -32,16 +32,16 @@ make install   # builds and copies to /Applications
 
 Other commands: `make run` runs from `build/`, `make test` runs the tests.
 
-On the first block macOS asks "Seawall wants to control Safari". Allow it. Without that access Seawall can't see tabs, so during a block Safari just gets closed.
+The first launch walks you through it, including macOS asking "Seawall wants to control Safari" (and Chrome, if you have it). Allow it. Without that access Seawall can't see tabs, so during a block that browser just gets closed.
 
 ## How it works
 
 | What | How |
 | --- | --- |
-| Sites in Safari | Twice a second it reads tab addresses over Apple Events. If an address matches a rule, the tab is sent to a local page at `127.0.0.1:47321`. No Safari extension needed. |
+| Sites in Safari, Chrome, Arc, Brave and Edge | Twice a second it reads tab addresses over Apple Events (every 5 seconds for a browser in the background). If an address matches a rule, the tab is sent to a local page at `127.0.0.1:47321`. No browser extension needed. Private and Incognito windows are covered too. Arc, Brave and Edge use Chrome's scripting but haven't been tested yet. |
 | Rules | `twitch.tv` blocks the domain and its subdomains. `youtube.com/shorts` blocks only that section. A few subdomains are really their own site, so `youtube.com` leaves `music.youtube.com` open unless you add it too. |
 | Apps | Watches app launches and closes the ones on the list. If an app doesn't quit within a second, it gets killed. |
-| Other browsers | The "Other browsers" option closes Chrome, Firefox, Arc and the like. Otherwise the Safari block is one browser launch away. |
+| Other browsers | Firefox, Zen, Opera, Vivaldi and the like can't be looked into, so the "Other browsers" option closes them during a block. It only shows up when one of them is installed. |
 | Several blocks | Each block keeps its own end time and attempt count. When two blocks cover the same site, the page shows the later end. |
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
@@ -59,13 +59,11 @@ rm -rf /Applications/Seawall.app "$HOME/Library/Application Support/Seawall"
 tccutil reset AppleEvents com.nikitaverba.FocusLock
 ```
 
-The last line forgets the Safari permission. The names still say FocusLock because that was the app's first name.
+The last line forgets the permission to control Safari, Chrome and the other browsers. The names still say FocusLock because that was the app's first name.
 
 ## Honest limits
 
 Seawall protects you from an impulse, not from a determined person with a terminal. You can get around it by deleting the LaunchAgent, revoking access in System Settings or editing the files. But that takes minutes of deliberate effort, not five seconds.
-
-Private Safari windows are covered too: a blocked site opened in a private tab lands on the same page.
 
 ## Next
 
