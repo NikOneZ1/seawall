@@ -5,6 +5,7 @@ struct MenuView: View {
     @EnvironmentObject private var controller: BlockController
     /// Setting up one more block while others run.
     @State private var addingBlock = false
+    @ObservedObject private var dive = Dive.shared
 
     var body: some View {
         Group {
@@ -21,7 +22,13 @@ struct MenuView: View {
         .padding(.bottom, 16 + Deep.floor)
         .frame(width: 320)
         // Always the water, whatever the system appearance: white type on deep teal, like the block page.
-        .background(WaterSurface())
+        .background {
+            ZStack {
+                WaterSurface()
+                // Deeper while "Hold to lock" is held.
+                Color(red: 0.01, green: 0.04, blue: 0.055).opacity(0.72 * dive.depth)
+            }
+        }
         .overlay(alignment: .bottom) { FindsShelf(finds: controller.finds) }
         .onContinuousHover { phase in
             switch phase {

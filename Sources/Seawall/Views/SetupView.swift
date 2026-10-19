@@ -10,11 +10,13 @@ struct SetupView: View {
     @State private var adding = false
     @State private var holding = false
     @FocusState private var siteFieldFocused: Bool
+    @ObservedObject private var dive = Dive.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             if let close {
                 QuietButton(title: "‹  Running blocks", action: close)
+                    .opacity(sunk)
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -45,10 +47,13 @@ struct SetupView: View {
                     addRow
                 }
             }
+            .opacity(sunk)
 
             durationRow
+                .opacity(sunk)
 
             deniedNotice
+                .opacity(sunk)
 
             HoldButton(title: startTitle, isEnabled: controller.canStart, onPressing: { pressing in
                 holding = pressing
@@ -59,25 +64,32 @@ struct SetupView: View {
                 close?()
             }
 
-            // The fine print shows up while you hold, when it matters.
-            HStack {
+            // The fine print shows up while you hold, when it matters, in place of Settings and Quit.
+            ZStack(alignment: .leading) {
                 Text("Leaving early will take a 10-minute wait.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .opacity(holding ? 1 : 0)
-                    .animation(.easeOut(duration: 0.2), value: holding)
-                Spacer()
-                QuietButton(title: "Settings") { Panels.showSettings(controller: controller) }
-                if controller.sessions.isEmpty {
-                    QuietButton(title: "Quit") { NSApp.terminate(nil) }
-                        .padding(.leading, 10)
+                HStack {
+                    Spacer()
+                    QuietButton(title: "Settings") { Panels.showSettings(controller: controller) }
+                    if controller.sessions.isEmpty {
+                        QuietButton(title: "Quit") { NSApp.terminate(nil) }
+                            .padding(.leading, 10)
+                    }
                 }
+                .opacity(holding ? 0 : 1)
+                .allowsHitTesting(!holding)
             }
+            .animation(.easeOut(duration: 0.2), value: holding)
             .padding(.top, -8)
         }
     }
 
     private static let wordFont = Font.system(size: 20, weight: .semibold)
+
+    /// Everything but the hold button fades as the menu sinks.
+    private var sunk: Double { 1 - 0.65 * dive.depth }
 
     // MARK: - What to lock
 

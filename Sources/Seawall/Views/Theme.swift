@@ -256,8 +256,38 @@ struct FlowLayout: Layout {
 
 // MARK: - Actions
 
-/// Press and hold to lock. A white fill sweeps across the dark glass pill and the label
-/// turns deep under it, so starting a block is a deliberate second, not a stray click.
+/// How deep the menu has sunk while "Hold to lock" is held: 0 at the surface, 1 at the bottom.
+/// The water darkens with it and everything but the button dims, until the button is the only
+/// light left. Once the lock takes, the menu comes back up.
+@MainActor
+final class Dive: ObservableObject {
+    static let shared = Dive()
+
+    @Published private(set) var depth: Double = 0
+    /// Set by a finished hold, so the release that follows doesn't cut the way back up short.
+    private var surfacing = false
+
+    func press(_ on: Bool) {
+        if on {
+            surfacing = false
+        } else if surfacing {
+            return
+        }
+        withAnimation(on ? .easeIn(duration: HoldButton.holdTime) : .easeOut(duration: 0.25)) {
+            depth = on ? 1 : 0
+        }
+    }
+
+    /// A moment at the bottom, then back up.
+    func surface() {
+        surfacing = true
+        withAnimation(.easeInOut(duration: 0.8).delay(0.45)) { depth = 0 }
+    }
+}
+
+/// Press and hold to lock. While held the menu sinks (see `Dive`) and the pill glows brighter;
+/// when the hold is long enough it flashes white with deep type. Holding instead of clicking
+/// makes starting a block a deliberate second, not a stray click.
 struct HoldButton: View {
     static let holdTime = 0.8
 
@@ -267,42 +297,39 @@ struct HoldButton: View {
     var onPressing: (Bool) -> Void = { _ in }
     let action: () -> Void
 
-    @State private var progress: CGFloat = 0
+    @ObservedObject private var dive = Dive.shared
     @State private var pressing = false
+    /// The moment the lock takes.
+    @State private var flash = false
+
+    private static let light = Color(red: 0.91, green: 0.99, blue: 0.99)
+    private static let halo = Color(red: 0.67, green: 0.94, blue: 0.96)
 
     var body: some View {
         let shape = Capsule()
+        let glow = isEnabled ? dive.depth : 0
         ZStack {
             shape.fill(Deep.glass)
-                .overlay { shape.fill(Color.white.opacity(isEnabled ? 0.1 : 0.03)) }
-                .overlay { shape.strokeBorder(Color.white.opacity(isEnabled ? 0.18 : 0.1)) }
-            label.foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.4))
-            ZStack {
-                shape.fill(Color.white.opacity(0.92))
-                label.foregroundStyle(Deep.ink)
-            }
-            .mask(alignment: .leading) {
-                GeometryReader { proxy in
-                    Rectangle().frame(width: proxy.size.width * progress)
-                }
-            }
-            // A zero-width mask still lets a hairline of the round end through.
-            .opacity(progress > 0 ? 1 : 0)
+                .overlay { shape.fill(Color.white.opacity(isEnabled ? 0.1 + 0.2 * glow : 0.03)) }
+                .overlay { shape.strokeBorder(Color.white.opacity(isEnabled ? 0.18 + 0.3 * glow : 0.1)) }
+            shape.fill(Self.light.opacity(flash ? 0.92 : 0.5 * glow))
+            label.foregroundStyle(flash ? Deep.ink : Color.white.opacity(isEnabled ? 1 : 0.4))
         }
         .frame(height: 40)
+        .shadow(color: Self.halo.opacity(0.9 * glow), radius: 20 * glow)
         .contentShape(shape)
         .onLongPressGesture(minimumDuration: Self.holdTime, maximumDistance: 40) {
             guard isEnabled else { return }
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
+            flash = true
+            withAnimation(.easeOut(duration: 0.35).delay(0.4)) { flash = false }
+            dive.surface()
             action()
             setPressing(false)
-            withAnimation(.easeOut(duration: 0.3)) { progress = 0 }
         } onPressingChanged: { isPressing in
             guard isEnabled else { return }
             setPressing(isPressing)
-            withAnimation(isPressing ? .linear(duration: Self.holdTime) : .easeOut(duration: 0.25)) {
-                progress = isPressing ? 1 : 0
-            }
+            dive.press(isPressing)
         }
         .accessibilityElement()
         .accessibilityAddTraits(.isButton)
