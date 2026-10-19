@@ -8,6 +8,8 @@ struct SchedulesSection: View {
     /// The schedule being added or changed; `nil` when the editor is closed.
     @State private var draft: Schedule?
 
+    @State private var copied = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Deep.label("Schedules")
@@ -33,6 +35,37 @@ struct SchedulesSection: View {
                         draft = Schedule(listName: controller.config.lists[0].name, days: [2, 3, 4, 5, 6],
                                          start: TimeOfDay(hour: 10, minute: 0), end: TimeOfDay(hour: 18, minute: 0))
                     }
+                }
+            }
+
+            focusHelp
+                .padding(.top, 6)
+        }
+    }
+
+    /// macOS won't let an app built this way join Focus filters, so a Focus starts a block through
+    /// a Shortcuts automation that opens a lock link.
+    private var focusHelp: some View {
+        let link = "seawall://lock?list=\(controller.config.lists.first?.name ?? "Work")&until=18:00"
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Start with a Focus")
+                .font(.system(size: 13.5, weight: .semibold))
+            Text("In Shortcuts, open Automation, add one for your Focus “When turning on”, and give it Open URLs with this link. "
+                + "Without list it locks what's switched on; for=2h works in place of until.")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Text(link)
+                    .font(.system(size: 12, design: .monospaced))
+                    .textSelection(.enabled)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                QuietButton(title: copied ? "Copied" : "Copy") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(link, forType: .string)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
                 }
             }
         }

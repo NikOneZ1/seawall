@@ -13,7 +13,7 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 </p>
 
 - A lock in the menu bar: pick sites and apps, pick how long, then press and hold "Hold to lock". Holding instead of clicking means no block starts by accident.
-- How long: 15 minutes to 4 hours, or until a set time: tonight, tomorrow at 15:00, up to a week ahead.
+- How long: 15 minutes to 4 hours, until a set time (tonight, tomorrow at 15:00, up to a week ahead), or in rounds: 4 × 25 minutes with 5-minute breaks, when everything opens.
 - Save what you lock as a list, like Work or Evening ("Save what's on as a list…" under + Add). Saved lists sit as small chips under "Lock"; tap one to switch to it.
 - Blocks stack. Twitch until tonight, then YouTube for an hour on top. A new block only adds to what's blocked; it never shortens the ones already running.
 - Open Shorts or Twitch and the tab lands on a "Blocked until 18:00" page. Regular YouTube still works.
@@ -21,6 +21,8 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 - One tap covers a whole kind of distraction: under "+ Add" there are Games, Social, Video, News and Shopping, plus popular single sites. Games closes any app macOS lists as a game, even ones you've never added.
 - Or block the whole web. "Whole web" sits under "+ Add" with the groups; once it's on, an Except row lets you keep a few sites open, like your docs or a work tool.
 - There's no stop button. You can ask to leave early and wait 10 minutes; then Seawall asks "End the block now?" for 2 minutes. Don't answer and the request expires. Every block has its own way out. The line under the duration ("Leave early after 10 min") switches it to a 30-minute wait, or no way out at all.
+- Schedules start a saved list on their own, like Work on weekdays from 10:00 to 18:00 (Settings → Schedules).
+- A Focus can start a block too: a Shortcuts automation opens a link like `seawall://lock?list=Work&until=18:00` (or `for=2h`) when the Focus turns on. Settings has the steps and a link to copy. The same link works from Raycast, Alfred or Terminal, and never locks for more than 12 hours.
 - Settings also has: the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds when one starts and ends, and ⌃⌥⌘L to open the menu from anywhere.
 - When a block ends, it tells you how many times you tried to break it.
 
@@ -72,7 +74,7 @@ Seawall protects you from an impulse, not from a determined person with a termin
 
 ## Next
 
-- [ ] Schedules (weekdays 10:00–18:00)
+- [x] Schedules (weekdays 10:00–18:00)
 - [ ] Daily stats
 - [x] Icon
 - [ ] A signed release

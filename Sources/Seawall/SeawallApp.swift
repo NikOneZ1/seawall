@@ -37,6 +37,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static let welcomeShownKey = "welcomeShown"
 
+    /// `seawall://lock?list=Work&until=18:00`, from Shortcuts, Raycast or a Focus automation.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            if let link = LockLink(url) { controller.lock(link) }
+        }
+    }
+
     /// The watchdog `open`s the app every few seconds during a block; that must stay invisible.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         false

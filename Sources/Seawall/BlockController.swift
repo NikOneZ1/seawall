@@ -280,25 +280,51 @@ final class BlockController: ObservableObject {
             guard let stretch = schedule.due(at: now), stretch.end.timeIntervalSince(now) > 60,
                   let list = config.lists.first(where: { $0.name == schedule.listName }) else { continue }
             config.schedules[index].lastRun = stretch.start
-            let session = Session(
-                startedAt: now,
-                endsAt: stretch.end,
-                sites: list.sites,
-                apps: config.apps.filter { list.apps.contains($0.bundleID) }.map { BlockedApp(bundleID: $0.bundleID, name: $0.name) },
-                blocksOtherBrowsers: list.otherBrowsers && !InstalledBrowsers.unreadable.isEmpty,
-                groups: list.groups,
-                allowedSites: list.groups.contains(.web) ? config.allowedSites : [],
-                earlyExit: Preferences.shared.earlyExit
-            )
-            // Two blocks can't share a start time: it's their ID.
-            guard !sessions.contains(where: { $0.id == session.id }) else { continue }
-            sessions.append(session)
-            persistSessions()
-            applyBlocks(countRunningApps: false)
-            Sounds.locked()
-            Notifier.shared.scheduleStarted(session, list: list.name)
-            Notifier.shared.blockStarted(session)
+            if let session = start(list, at: now, until: stretch.end) {
+                Notifier.shared.scheduleStarted(session, list: list.name)
+            }
         }
+    }
+
+    /// From a `seawall://lock` link, like one a Shortcuts automation opens when a Focus turns on.
+    /// A list that doesn't exist locks nothing, rather than something else.
+    func lock(_ link: LockLink) {
+        let now = Date()
+        let list: SavedList
+        if let name = link.list {
+            guard let saved = config.lists.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
+                log.error("seawall://lock asked for a list called \(name, privacy: .public), and there isn't one")
+                return
+            }
+            list = saved
+        } else {
+            list = config.selection(named: "")
+        }
+        let end = link.end(from: now) ?? config.duration.endDate(from: now, until: config.until)
+        _ = start(list, at: now, until: min(end, now + LockLink.longest))
+    }
+
+    /// A block of what `list` holds, started outside the menu: by a schedule or a link.
+    private func start(_ list: SavedList, at now: Date, until end: Date) -> Session? {
+        let session = Session(
+            startedAt: now,
+            endsAt: end,
+            sites: list.sites,
+            apps: config.apps.filter { list.apps.contains($0.bundleID) }.map { BlockedApp(bundleID: $0.bundleID, name: $0.name) },
+            blocksOtherBrowsers: list.otherBrowsers && !InstalledBrowsers.unreadable.isEmpty,
+            groups: list.groups,
+            allowedSites: list.groups.contains(.web) ? config.allowedSites : [],
+            earlyExit: Preferences.shared.earlyExit
+        )
+        let empty = session.allSites.isEmpty && session.apps.isEmpty && session.groups.isEmpty && !session.blocksOtherBrowsers
+        // Two blocks can't share a start time: it's their ID.
+        guard !empty, end > now, !sessions.contains(where: { $0.id == session.id }) else { return nil }
+        sessions.append(session)
+        persistSessions()
+        applyBlocks(countRunningApps: false)
+        Sounds.locked()
+        Notifier.shared.blockStarted(session)
+        return session
     }
 
     func saveSchedule(_ schedule: Schedule) {
