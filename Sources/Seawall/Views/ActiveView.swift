@@ -1,4 +1,4 @@
-import FocusLockCore
+import SeawallCore
 import SwiftUI
 
 /// The menu while blocks run: each block's countdown, what it holds, and the 10-minute

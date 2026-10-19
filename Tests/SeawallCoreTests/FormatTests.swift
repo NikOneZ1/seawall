@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import FocusLockCore
+@testable import SeawallCore
 
 struct FormatTests {
     var calendar: Calendar {

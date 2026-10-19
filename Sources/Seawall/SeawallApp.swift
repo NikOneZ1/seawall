@@ -1,8 +1,8 @@
-import FocusLockCore
+import SeawallCore
 import SwiftUI
 
 @main
-struct FocusLockApp: App {
+struct SeawallApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

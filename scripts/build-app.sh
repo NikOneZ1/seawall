@@ -19,7 +19,7 @@ BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN_DIR/FocusLock" "$APP/Contents/MacOS/Seawall"
+cp "$BIN_DIR/Seawall" "$APP/Contents/MacOS/Seawall"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 

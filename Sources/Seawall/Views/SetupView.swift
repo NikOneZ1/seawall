@@ -1,4 +1,4 @@
-import FocusLockCore
+import SeawallCore
 import SwiftUI
 
 /// Reads as a sentence: "Lock [Twitch] [TikTok] for 2 hours", then hold to lock.

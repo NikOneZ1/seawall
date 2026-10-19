@@ -1,4 +1,4 @@
-import FocusLockCore
+import SeawallCore
 import SwiftUI
 
 struct MenuView: View {

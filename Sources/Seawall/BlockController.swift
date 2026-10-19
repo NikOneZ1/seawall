@@ -1,5 +1,5 @@
 import AppKit
-import FocusLockCore
+import SeawallCore
 import os
 import UniformTypeIdentifiers
 
