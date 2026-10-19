@@ -325,6 +325,30 @@ struct HoldButton: View {
     }
 }
 
+/// Buttons in the welcome and Settings windows: white with deep type for the main action,
+/// dark glass for the rest, like the hold button.
+struct PillButtonStyle: ButtonStyle {
+    var primary = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(primary ? Deep.ink : Color.white)
+            .padding(.horizontal, 18)
+            .frame(height: 32)
+            .background {
+                if primary {
+                    Capsule().fill(Color.white.opacity(configuration.isPressed ? 0.75 : 0.92))
+                } else {
+                    Capsule()
+                        .fill(Color.white.opacity(configuration.isPressed ? 0.18 : 0.1))
+                        .strokeBorder(Color.white.opacity(0.2))
+                }
+            }
+            .contentShape(.capsule)
+    }
+}
+
 /// Small text actions. Quiet until hovered.
 struct QuietButton: View {
     let title: String

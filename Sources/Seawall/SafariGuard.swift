@@ -27,6 +27,10 @@ final class SafariGuard {
         !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
     }
 
+    static var isFrontmost: Bool {
+        NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleID
+    }
+
     /// Returns `{{windowID, {url, url, …}}, …}`. Falls back to tab-by-tab reads when a window
     /// has a tab without a URL, so one blank tab can't hide the rest of the window.
     private static let listSource = """

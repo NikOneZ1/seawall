@@ -100,6 +100,8 @@ final class BlockController: ObservableObject {
     @Published private(set) var finds: [Find]
     /// Ticks once a second for countdowns.
     @Published private(set) var now = Date()
+    /// The menu bar's end time, which changes far less often than `now`.
+    let menuBar = MenuBarState()
 
     private let store = Store()
     private let safari = SafariGuard()
@@ -113,6 +115,9 @@ final class BlockController: ObservableObject {
     /// The "End now?" alert on screen for a block whose wait is over.
     private var unlockPrompt: (id: Session.ID, alert: NSAlert)?
     private var timer: Timer?
+    /// When Safari's tabs were last read; see `enforceSafari`.
+    private var lastSafariCheck = Date.distantPast
+    private static let backgroundSafariInterval: TimeInterval = 5
 
     init() {
         config = store.load(Config.self, from: .config) ?? .initial
@@ -247,6 +252,8 @@ final class BlockController: ObservableObject {
     /// Points the guards at everything the running blocks cover.
     /// `countRunningApps`: see `AppGuard.update`.
     private func applyBlocks(countRunningApps: Bool) {
+        // A new block checks Safari right away, wherever it is.
+        lastSafariCheck = .distantPast
         rules = [:]
         for session in sessions {
             let siteRules = session.sites.compactMap(SiteRule.init)
@@ -288,10 +295,16 @@ final class BlockController: ObservableObject {
         if Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
             now = wall
         }
+        menuBar.update(blockedUntil.map { Format.clockTime($0, relativeTo: wall) })
     }
 
     private func enforceSafari() {
         guard !rules.isEmpty, SafariGuard.isRunning else { return }
+        // Asking Safari for its tabs is most of what a block costs. In front it's asked on every
+        // tick; behind other apps, where nobody is looking at it, every few seconds is enough.
+        let checkedAt = Date()
+        if !SafariGuard.isFrontmost, checkedAt.timeIntervalSince(lastSafariCheck) < Self.backgroundSafariInterval { return }
+        lastSafariCheck = checkedAt
 
         switch safari.tabs() {
         case .success(let tabs):
@@ -426,6 +439,26 @@ final class BlockController: ObservableObject {
 
     func refreshSafariAccess() {
         if let access = SafariGuard.determineAccess(ask: false) { setSafariAccess(access) }
+    }
+
+    /// From the welcome: shows the "control Safari" prompt now rather than in the middle of a
+    /// block. macOS only asks about a running app, so Safari is opened in the background first.
+    func askForSafariAccess() async {
+        if SafariGuard.determineAccess(ask: false) == nil,
+           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: SafariGuard.bundleID) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = false
+            configuration.hides = true
+            _ = try? await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+        }
+        // A Safari that's still starting up isn't ready for the question; give it a few seconds.
+        for _ in 0..<20 {
+            if let access = await Task.detached(operation: { SafariGuard.determineAccess(ask: true) }).value {
+                setSafariAccess(access)
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
     }
 
     func openAutomationSettings() {

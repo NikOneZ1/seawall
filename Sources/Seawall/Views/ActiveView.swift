@@ -21,7 +21,11 @@ struct ActiveView: View {
 
             Divider().padding(.vertical, 14)
 
-            QuietButton(title: "+  Lock something else", action: onAdd)
+            HStack {
+                QuietButton(title: "+  Lock something else", action: onAdd)
+                Spacer()
+                QuietButton(title: "Settings") { Panels.showSettings(controller: controller) }
+            }
         }
     }
 

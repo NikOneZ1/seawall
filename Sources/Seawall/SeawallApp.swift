@@ -10,7 +10,7 @@ struct SeawallApp: App {
             MenuView()
                 .environmentObject(appDelegate.controller)
         } label: {
-            MenuBarLabel(controller: appDelegate.controller)
+            MenuBarLabel(state: appDelegate.controller.menuBar)
         }
         .menuBarExtraStyle(.window)
     }
@@ -28,7 +28,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         controller.launch()
+
+        if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
+            UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)
+            Panels.showWelcome(controller: controller)
+        }
     }
+
+    private static let welcomeShownKey = "welcomeShown"
 
     /// The watchdog `open`s the app every few seconds during a block; that must stay invisible.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -36,14 +43,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// What the menu bar shows. Kept apart from the controller, which ticks every second: redrawing
+/// the status item that often kept an idle Seawall at a steady 2% CPU.
+@MainActor
+final class MenuBarState: ObservableObject {
+    /// "18:00" while anything is blocked.
+    @Published private(set) var blockedUntil: String?
+
+    func update(_ text: String?) {
+        if blockedUntil != text { blockedUntil = text }
+    }
+}
+
 struct MenuBarLabel: View {
-    @ObservedObject var controller: BlockController
+    @ObservedObject var state: MenuBarState
 
     var body: some View {
-        if let until = controller.blockedUntil {
+        if let until = state.blockedUntil {
             HStack(spacing: 4) {
                 Image(nsImage: SlabGlyph.locked)
-                Text(Format.clockTime(until, relativeTo: controller.now))
+                Text(until)
             }
         } else {
             Image(nsImage: SlabGlyph.open)

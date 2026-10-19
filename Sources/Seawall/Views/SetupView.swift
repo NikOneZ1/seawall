@@ -67,8 +67,10 @@ struct SetupView: View {
                     .opacity(holding ? 1 : 0)
                     .animation(.easeOut(duration: 0.2), value: holding)
                 Spacer()
+                QuietButton(title: "Settings") { Panels.showSettings(controller: controller) }
                 if controller.sessions.isEmpty {
                     QuietButton(title: "Quit") { NSApp.terminate(nil) }
+                        .padding(.leading, 10)
                 }
             }
             .padding(.top, -8)

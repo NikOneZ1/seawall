@@ -65,7 +65,7 @@ The last line forgets the Safari permission. The names still say FocusLock becau
 
 Seawall protects you from an impulse, not from a determined person with a terminal. You can get around it by deleting the LaunchAgent, revoking access in System Settings or editing the files. But that takes minutes of deliberate effort, not five seconds.
 
-Not tested yet: whether AppleScript sees tabs in private Safari windows.
+Private Safari windows are covered too: a blocked site opened in a private tab lands on the same page.
 
 ## Next
 
