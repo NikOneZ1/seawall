@@ -73,7 +73,6 @@ Not tested yet: whether AppleScript sees tabs in private Safari windows.
 - [ ] Daily stats
 - [x] Icon
 - [ ] A signed release
-- [ ] iPhone (Screen Time API, $99/year)
 
 ## License
 
