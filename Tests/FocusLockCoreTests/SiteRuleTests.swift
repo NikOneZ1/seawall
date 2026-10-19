@@ -35,6 +35,17 @@ struct SiteRuleTests {
         #expect(!rule.matches(url("https://twitch.tv.example.com/")))
     }
 
+    @Test func separateSitesNeedTheirOwnRule() throws {
+        let youtube = try #require(SiteRule("youtube.com"))
+        let music = try #require(SiteRule("music.youtube.com"))
+        #expect(!youtube.matches(url("https://music.youtube.com/watch?v=abc")))
+        #expect(!youtube.covers(music))
+        #expect(youtube.matches(url("https://www.youtube.com/watch?v=abc")))
+        #expect(music.matches(url("https://music.youtube.com/watch?v=abc")))
+        #expect(!music.matches(url("https://www.youtube.com/")))
+        #expect(music.covers(try #require(SiteRule("music.youtube.com/library"))))
+    }
+
     @Test func ignoresNonWebURLs() throws {
         let rule = try #require(SiteRule("twitch.tv"))
         #expect(!rule.matches(url("file:///Users/me/twitch.tv")))
@@ -54,6 +65,7 @@ struct SiteRuleTests {
 
     @Test(arguments: [
         ("youtube.com/shorts", "YouTube Shorts"), ("twitch.tv", "Twitch"), ("m.youtube.com", "YouTube"),
+        ("music.youtube.com", "YouTube Music"),
         ("news.ycombinator.com", "Hacker News"), ("example.org", "Example"), ("bbc.co.uk", "Bbc"),
         ("reddit.com/r/funny", "Reddit Funny"),
     ])

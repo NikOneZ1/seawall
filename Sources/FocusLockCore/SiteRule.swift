@@ -2,8 +2,10 @@ import Foundation
 
 /// A site to block: a domain ("twitch.tv"), optionally narrowed to a section ("youtube.com/shorts").
 ///
-/// The domain covers its subdomains too (www., m., clips.), and the path matches whole
-/// segments only, so "youtube.com/shorts" blocks /shorts/abc but not /watch or /shortsale.
+/// The domain covers its subdomains too (www., m., clips.), except the few that are really a
+/// different site (music.youtube.com) — those are blocked only when listed themselves.
+/// The path matches whole segments only, so "youtube.com/shorts" blocks /shorts/abc but not
+/// /watch or /shortsale.
 public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
     public let host: String
     public let path: String
@@ -53,7 +55,21 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
         "reddit.com": "Reddit", "netflix.com": "Netflix", "vk.com": "VK", "linkedin.com": "LinkedIn",
         "news.ycombinator.com": "Hacker News", "discord.com": "Discord", "pinterest.com": "Pinterest",
         "threads.net": "Threads", "kick.com": "Kick", "telegram.org": "Telegram",
+        "music.youtube.com": "YouTube Music",
     ]
+
+    /// Subdomains that are their own thing rather than part of the parent site: blocking
+    /// "youtube.com" shouldn't take away music while working.
+    private static let separateSites: Set<String> = ["music.youtube.com"]
+
+    /// Whether `other` is this rule's host or one of its subdomains, short of a separate site under it.
+    private func reaches(_ other: String) -> Bool {
+        if other == host { return true }
+        guard other.hasSuffix("." + host) else { return false }
+        return !Self.separateSites.contains { site in
+            site.hasSuffix("." + host) && (other == site || other.hasSuffix("." + site))
+        }
+    }
 
     /// "example" in "www.example.com", "bbc" in "bbc.co.uk".
     private static func mainLabel(of host: String) -> String {
@@ -66,8 +82,7 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
 
     public func matches(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let urlHost = url.host?.lowercased(),
-              urlHost == host || urlHost.hasSuffix("." + host) else { return false }
+              let urlHost = url.host?.lowercased(), reaches(urlHost) else { return false }
         guard !path.isEmpty else { return true }
         let urlPath = url.path.lowercased()
         return urlPath == path || urlPath.hasPrefix(path + "/")
@@ -75,7 +90,7 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
 
     /// Whether this rule blocks everything `other` does: "youtube.com" covers "youtube.com/shorts".
     public func covers(_ other: SiteRule) -> Bool {
-        guard other.host == host || other.host.hasSuffix("." + host) else { return false }
+        guard reaches(other.host) else { return false }
         return path.isEmpty || other.path == path || other.path.hasPrefix(path + "/")
     }
 }
