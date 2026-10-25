@@ -7,7 +7,7 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 ## What it looks like
 
 <p align="center">
-  <img src="docs/menu.png" width="320" alt="The Seawall menu: sites and apps to block as chips, how long, and a Hold to lock button, over teal water with sand at the bottom">
+  <img src="docs/menu.png" width="320" alt="The Seawall menu: two lists as cards, Work on weekday mornings and Evening, what Work blocks, how long, and a Hold to lock button">
   &nbsp;
   <img src="docs/block-page.jpg" width="480" alt="The page a blocked tab lands on: Blocked until 18:00, over still water with a pebble in the sand">
 </p>
