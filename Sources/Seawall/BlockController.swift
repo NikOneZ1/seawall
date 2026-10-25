@@ -5,144 +5,6 @@ import UniformTypeIdentifiers
 
 let log = Logger(subsystem: "com.nikitaverba.FocusLock", category: "app")
 
-struct SiteItem: Codable, Identifiable, Hashable {
-    var pattern: String
-    var enabled = true
-    var id: String { pattern }
-}
-
-/// A Games, Social… chip in the list, on or off like a site.
-struct GroupItem: Codable, Identifiable, Hashable {
-    var group: SiteGroup
-    var enabled = true
-    var id: SiteGroup { group }
-}
-
-struct AppItem: Codable, Identifiable, Hashable {
-    var bundleID: String
-    var name: String
-    var path: String
-    var enabled = true
-    var id: String { bundleID }
-}
-
-/// Something picked up from the sand on the block page. The menu shows them in its own sand.
-struct Find: Codable, Equatable {
-    enum Kind: String, Codable, CaseIterable {
-        case scallop, glass, stone, dollar, snail, star
-
-        var title: String {
-            switch self {
-            case .scallop: "Scallop shell"
-            case .glass: "Sea glass"
-            case .stone: "Smooth stone"
-            case .dollar: "Sand dollar"
-            case .snail: "Snail shell"
-            case .star: "Starfish"
-            }
-        }
-    }
-
-    var kind: Kind
-    var foundAt: Date
-}
-
-/// A named set of what to lock, like Work or Evening, picked from the "Lock" title.
-struct SavedList: Codable, Identifiable, Hashable {
-    var name: String
-    var groups: [SiteGroup]
-    var sites: [String]
-    var apps: [String]
-    var otherBrowsers: Bool
-    var id: String { name }
-}
-
-/// What the next block will cover. Running blocks keep their own copy, so editing this never loosens them.
-struct Config: Codable, Equatable {
-    var groups: [GroupItem] = []
-    var sites: [SiteItem]
-    /// Left open while Whole web is on.
-    var allowedSites: [String] = []
-    var lists: [SavedList] = []
-    /// Blocks that start on their own, each locking one of the lists.
-    var schedules: [Schedule] = []
-    var apps: [AppItem]
-    var blockOtherBrowsers: Bool
-    var duration: BlockDuration
-    var until: UntilTime
-
-    static var initial: Config {
-        Config(
-            sites: ["youtube.com/shorts", "twitch.tv", "tiktok.com"].map { SiteItem(pattern: $0) },
-            apps: [],
-            blockOtherBrowsers: true,
-            duration: .hours2,
-            until: UntilTime(day: 0, hour: 18, minute: 0)
-        )
-    }
-
-    var enabledGroups: [SiteGroup] { groups.filter(\.enabled).map(\.group) }
-    var enabledSites: [String] { sites.filter(\.enabled).map(\.pattern) }
-    var enabledApps: [BlockedApp] { apps.filter(\.enabled).map { BlockedApp(bundleID: $0.bundleID, name: $0.name) } }
-    /// "Other browsers" only counts when there's one installed for it to close.
-    var closesOtherBrowsers: Bool { blockOtherBrowsers && !InstalledBrowsers.unreadable.isEmpty }
-    var isEmpty: Bool { enabledGroups.isEmpty && enabledSites.isEmpty && enabledApps.isEmpty && !closesOtherBrowsers }
-    /// Whether the next block covers any sites, its groups' included.
-    var coversSites: Bool { !enabledSites.isEmpty || enabledGroups.contains { !$0.sites.isEmpty || $0 == .web } }
-    var blocksWholeWeb: Bool { enabledGroups.contains(.web) }
-
-    /// What's switched on right now, as a list called `name`.
-    func selection(named name: String) -> SavedList {
-        SavedList(name: name, groups: enabledGroups, sites: enabledSites,
-                  apps: apps.filter(\.enabled).map(\.bundleID), otherBrowsers: blockOtherBrowsers)
-    }
-
-    /// The saved list that's switched on right now, if any.
-    var currentList: SavedList? {
-        let now = selection(named: "")
-        return lists.first { list in
-            Set(list.groups) == Set(now.groups) && Set(list.sites) == Set(now.sites)
-                && Set(list.apps) == Set(now.apps) && list.otherBrowsers == now.otherBrowsers
-        }
-    }
-
-    /// Switches on exactly what the list holds, and everything else off.
-    mutating func apply(_ list: SavedList) {
-        for i in groups.indices { groups[i].enabled = list.groups.contains(groups[i].group) }
-        for i in sites.indices { sites[i].enabled = list.sites.contains(sites[i].pattern) }
-        for i in apps.indices { apps[i].enabled = list.apps.contains(apps[i].bundleID) }
-        blockOtherBrowsers = list.otherBrowsers
-    }
-}
-
-extension Config {
-    /// Before "Until…" had a day it was only a time of day, saved as `untilTime`.
-    private enum LegacyKeys: String, CodingKey {
-        case untilTime
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        groups = try container.decodeIfPresent([GroupItem].self, forKey: .groups) ?? []
-        sites = try container.decode([SiteItem].self, forKey: .sites)
-        allowedSites = try container.decodeIfPresent([String].self, forKey: .allowedSites) ?? []
-        lists = try container.decodeIfPresent([SavedList].self, forKey: .lists) ?? []
-        schedules = try container.decodeIfPresent([Schedule].self, forKey: .schedules) ?? []
-        apps = try container.decode([AppItem].self, forKey: .apps)
-        blockOtherBrowsers = try container.decode(Bool.self, forKey: .blockOtherBrowsers)
-        duration = try container.decode(BlockDuration.self, forKey: .duration)
-        if let until = try container.decodeIfPresent(UntilTime.self, forKey: .until) {
-            self.until = until
-        } else if let time = try decoder.container(keyedBy: LegacyKeys.self).decodeIfPresent(Date.self, forKey: .untilTime) {
-            let parts = Calendar.current.dateComponents([.hour, .minute], from: time)
-            let minute = parts.minute ?? 0
-            until = UntilTime(day: 0, hour: parts.hour ?? 18, minute: minute - minute % UntilTime.minuteStep)
-        } else {
-            until = Config.initial.until
-        }
-    }
-}
-
 @MainActor
 final class BlockController: ObservableObject {
     @Published var config: Config {
@@ -155,8 +17,13 @@ final class BlockController: ObservableObject {
     @Published private(set) var browserAccess: [String: BrowserAccess] = [:]
     /// Picked up on the block page, oldest first.
     @Published private(set) var finds: [Find]
+    /// Blocks that have ended, oldest first, for the Today page.
+    @Published private(set) var history: [BlockRecord]
     /// Ticks once a second for countdowns.
     @Published private(set) var now = Date()
+    /// How strict the next block is, when it differs from the default in Settings. Cleared
+    /// once that block starts, so a one-off choice never becomes the new default.
+    @Published var strictness: EarlyExit?
     /// The menu bar's end time, which changes far less often than `now`.
     let menuBar = MenuBarState()
 
@@ -186,7 +53,12 @@ final class BlockController: ObservableObject {
     private static let failuresBeforeClosing = 4
 
     init() {
-        config = store.load(Config.self, from: .config) ?? .initial
+        if let data = store.data(.config), let loaded = Config.decode(data) {
+            config = loaded.config
+            if loaded.migrated { store.save(loaded.config, as: .config) }
+        } else {
+            config = .initial
+        }
         var sessions = store.load([Session].self, from: .sessions) ?? []
         // Written by versions that ran one block at a time.
         if let legacy = store.load(Session.self, from: .session) {
@@ -197,6 +69,7 @@ final class BlockController: ObservableObject {
         self.sessions = sessions
         lastSummary = store.load(SessionSummary.self, from: .summary)
         finds = store.load([Find].self, from: .finds) ?? []
+        history = store.load([BlockRecord].self, from: .history) ?? []
     }
 
     func launch() {
@@ -224,13 +97,59 @@ final class BlockController: ObservableObject {
         }
     }
 
-    // MARK: - Block lifecycle
+    // MARK: - The next block
+
+    /// Whether "Other browsers" has anything to close on this Mac.
+    var otherBrowsersInstalled: Bool { !InstalledBrowsers.unreadable.isEmpty }
+
+    var selectedList: BlockList? { config.selectedList }
+
+    func select(_ list: BlockList) {
+        config.next.listID = list.id
+    }
+
+    /// How strict the next block will be: the one-off choice, or the default from Settings.
+    var nextStrictness: EarlyExit { strictness ?? Preferences.shared.earlyExit }
+
+    /// Rounds that fit the chosen length: at least two, and only for blocks up to four
+    /// hours, where breaks make sense.
+    var availableRounds: Rounds? {
+        let length = config.next.length.end(from: now).timeIntervalSince(now)
+        return length <= 4 * 3600 ? Rounds.fitting(length) : nil
+    }
+
+    /// The rounds the next block will have, when breaks are on.
+    var plannedRounds: Rounds? {
+        config.next.breaks ? availableRounds : nil
+    }
+
+    /// When the next block would end if it started now.
+    var plannedEnd: Date {
+        if let rounds = plannedRounds { return now + rounds.total }
+        return config.next.length.end(from: now)
+    }
 
     /// Another block can start while others run: it only ever adds to what's blocked.
-    var canStart: Bool { !config.isEmpty && plannedEnd > now }
+    var canStart: Bool {
+        guard let list = selectedList else { return false }
+        return !list.isEmpty(otherBrowsersInstalled: otherBrowsersInstalled) && plannedEnd > now
+    }
 
-    var plannedEnd: Date {
-        config.duration.endDate(from: now, until: config.until)
+    func startBlock() {
+        guard let list = selectedList else { return }
+        let start = Date()
+        let rounds = plannedRounds
+        let end = rounds.map { start + $0.total } ?? config.next.length.end(from: start)
+        let session = Session(list, startedAt: start, endsAt: end, earlyExit: nextStrictness, rounds: rounds,
+                              otherBrowsersInstalled: otherBrowsersInstalled)
+        guard !session.isEmpty, end > start else { return }
+        sessions.append(session)
+        strictness = nil
+        persistSessions()
+        applyBlocks(countRunningApps: false)
+        tick()
+        Sounds.locked()
+        Notifier.shared.blockStarted(session)
     }
 
     /// When everything is open again.
@@ -247,29 +166,7 @@ final class BlockController: ObservableObject {
         return true
     }
 
-    func startBlock() {
-        let start = Date()
-        let end = config.duration.endDate(from: start, until: config.until)
-        guard !config.isEmpty, end > start else { return }
-        sessions.append(Session(
-            startedAt: start,
-            endsAt: end,
-            sites: config.enabledSites,
-            apps: config.enabledApps,
-            blocksOtherBrowsers: config.closesOtherBrowsers,
-            groups: config.enabledGroups,
-            allowedSites: config.blocksWholeWeb ? config.allowedSites : [],
-            earlyExit: Preferences.shared.earlyExit,
-            rounds: config.duration == .rounds ? .standard : nil
-        ))
-        persistSessions()
-        applyBlocks(countRunningApps: false)
-        tick()
-        Sounds.locked()
-        if let session = sessions.last { Notifier.shared.blockStarted(session) }
-    }
-
-    // MARK: - Schedules
+    // MARK: - Schedules and links
 
     /// Starts any schedule whose time has come, until the end of its stretch. Each stretch
     /// starts once, so ending one early doesn't bring it straight back. A schedule whose list
@@ -278,7 +175,7 @@ final class BlockController: ObservableObject {
         for index in config.schedules.indices {
             let schedule = config.schedules[index]
             guard let stretch = schedule.due(at: now), stretch.end.timeIntervalSince(now) > 60,
-                  let list = config.lists.first(where: { $0.name == schedule.listName }) else { continue }
+                  let list = list(for: schedule) else { continue }
             config.schedules[index].lastRun = stretch.start
             if let session = start(list, at: now, until: stretch.end) {
                 Notifier.shared.scheduleStarted(session, list: list.name)
@@ -286,39 +183,36 @@ final class BlockController: ObservableObject {
         }
     }
 
+    func list(for schedule: Schedule) -> BlockList? {
+        if let id = schedule.listID { return config.list(id) }
+        return config.lists.first { $0.name.caseInsensitiveCompare(schedule.listName) == .orderedSame }
+    }
+
     /// From a `seawall://lock` link, like one a Shortcuts automation opens when a Focus turns on.
     /// A list that doesn't exist locks nothing, rather than something else.
     func lock(_ link: LockLink) {
         let now = Date()
-        let list: SavedList
+        let list: BlockList
         if let name = link.list {
-            guard let saved = config.lists.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
+            guard let named = config.lists.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
                 log.error("seawall://lock asked for a list called \(name, privacy: .public), and there isn't one")
                 return
             }
-            list = saved
+            list = named
         } else {
-            list = config.selection(named: "")
+            guard let selected = selectedList else { return }
+            list = selected
         }
-        let end = link.end(from: now) ?? config.duration.endDate(from: now, until: config.until)
+        let end = link.end(from: now) ?? config.next.length.end(from: now)
         _ = start(list, at: now, until: min(end, now + LockLink.longest))
     }
 
     /// A block of what `list` holds, started outside the menu: by a schedule or a link.
-    private func start(_ list: SavedList, at now: Date, until end: Date) -> Session? {
-        let session = Session(
-            startedAt: now,
-            endsAt: end,
-            sites: list.sites,
-            apps: config.apps.filter { list.apps.contains($0.bundleID) }.map { BlockedApp(bundleID: $0.bundleID, name: $0.name) },
-            blocksOtherBrowsers: list.otherBrowsers && !InstalledBrowsers.unreadable.isEmpty,
-            groups: list.groups,
-            allowedSites: list.groups.contains(.web) ? config.allowedSites : [],
-            earlyExit: Preferences.shared.earlyExit
-        )
-        let empty = session.allSites.isEmpty && session.apps.isEmpty && session.groups.isEmpty && !session.blocksOtherBrowsers
+    private func start(_ list: BlockList, at now: Date, until end: Date) -> Session? {
+        let session = Session(list, startedAt: now, endsAt: end, earlyExit: Preferences.shared.earlyExit,
+                              otherBrowsersInstalled: otherBrowsersInstalled)
         // Two blocks can't share a start time: it's their ID.
-        guard !empty, end > now, !sessions.contains(where: { $0.id == session.id }) else { return nil }
+        guard !session.isEmpty, end > now, !sessions.contains(where: { $0.id == session.id }) else { return nil }
         sessions.append(session)
         persistSessions()
         applyBlocks(countRunningApps: false)
@@ -328,6 +222,8 @@ final class BlockController: ObservableObject {
     }
 
     func saveSchedule(_ schedule: Schedule) {
+        var schedule = schedule
+        if let list = list(for: schedule) { schedule.listName = list.name }
         if let index = config.schedules.firstIndex(where: { $0.id == schedule.id }) {
             config.schedules[index] = schedule
         } else {
@@ -338,6 +234,46 @@ final class BlockController: ObservableObject {
     func deleteSchedule(_ schedule: Schedule) {
         config.schedules.removeAll { $0.id == schedule.id }
     }
+
+    func schedules(of list: BlockList) -> [Schedule] {
+        config.schedules.filter { self.list(for: $0)?.id == list.id }
+    }
+
+    // MARK: - Tightening a running block
+
+    /// More time on a running block. Only ever longer, so it needs no wait.
+    func extend(_ id: Session.ID, by seconds: TimeInterval) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].extend(by: seconds)
+        persistSessions()
+        applyBlocks(countRunningApps: false)
+    }
+
+    /// One more site on a running block. False if the text isn't a site or the block already
+    /// covers every site.
+    @discardableResult
+    func add(site pattern: String, to id: Session.ID) -> Bool {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), sessions[index].add(site: pattern) else { return false }
+        persistSessions()
+        applyBlocks(countRunningApps: false)
+        return true
+    }
+
+    func add(app: ListApp, to id: Session.ID) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].add(app: BlockedApp(bundleID: app.bundleID, name: app.name))
+        persistSessions()
+        applyBlocks(countRunningApps: true)
+    }
+
+    func add(group: SiteGroup, to id: Session.ID) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }), group != .web else { return }
+        sessions[index].add(group: group)
+        persistSessions()
+        applyBlocks(countRunningApps: true)
+    }
+
+    // MARK: - Leaving early
 
     func requestUnlock(_ id: Session.ID) {
         guard let index = sessions.firstIndex(where: { $0.id == id }),
@@ -371,12 +307,12 @@ final class BlockController: ObservableObject {
         guard let session = sessions.first(where: { $0.unlockState(at: now).isReady }) else { return }
 
         let alert = NSAlert()
-        alert.messageText = "End the block now?"
+        alert.messageText = "End \(session.title) now?"
         let minutes = Int((session.earlyExit.wait ?? 0) / 60)
         alert.informativeText = "The \(minutes)-minute wait is over. If you stay, \(session.names) stay blocked until "
             + "\(Format.clockTime(session.endsAt, relativeTo: now)). This question goes away in 2 minutes."
-        alert.addButton(withTitle: "Stay")
-        alert.addButton(withTitle: "End now").hasDestructiveAction = true
+        alert.addButton(withTitle: "Stay Locked")
+        alert.addButton(withTitle: "End Now").hasDestructiveAction = true
         unlockPrompt = (session.id, alert)
 
         let id = session.id
@@ -393,6 +329,8 @@ final class BlockController: ObservableObject {
             }
         }
     }
+
+    // MARK: - Enforcement
 
     /// Points the guards at everything the running blocks cover.
     /// `countRunningApps`: see `AppGuard.update`.
@@ -452,12 +390,17 @@ final class BlockController: ObservableObject {
         if Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
             now = wall
         }
-        menuBar.update(blockedUntil.map { until in
+        if let until = blockedUntil, let start = sessions.map(\.startedAt).min() {
             // "1h 24m" counts down a minute at a time and never shows 0m while anything is blocked.
-            Preferences.shared.showsTimeLeft
+            let text = Preferences.shared.showsTimeLeft
                 ? Format.duration((until.timeIntervalSince(wall) / 60).rounded(.up) * 60)
                 : Format.clockTime(until, relativeTo: wall)
-        })
+            let total = until.timeIntervalSince(start)
+            let progress = total > 0 ? min(max(wall.timeIntervalSince(start) / total, 0), 1) : 1
+            menuBar.update(text, progress: progress)
+        } else {
+            menuBar.update(nil, progress: nil)
+        }
     }
 
     private func enforceBrowsers() {
@@ -548,8 +491,11 @@ final class BlockController: ObservableObject {
         for session in ended {
             let summary = SessionSummary(session, endedAt: endedAt, early: early)
             lastSummary = summary
+            history.append(BlockRecord(session, endedAt: min(endedAt, session.endsAt), early: early))
             if !Notifier.shared.blockEnded(session, summary) { showSummary(summary) }
         }
+        if history.count > BlockRecord.kept { history.removeFirst(history.count - BlockRecord.kept) }
+        store.save(history, as: .history)
         if let lastSummary { store.save(lastSummary, as: .summary) }
     }
 
@@ -583,84 +529,91 @@ final class BlockController: ObservableObject {
         }
     }
 
-    // MARK: - Editing the lists
+    // MARK: - Today
 
-    /// When the running blocks let go of a site from the list, if any of them holds it.
-    func blockedUntil(site pattern: String) -> Date? {
+    var todayStats: DayStats {
+        DayStats(day: now, now: now, history: history, running: sessions)
+    }
+
+    // MARK: - Lists
+
+    /// A new, empty list, picked for the next block. Returns its id.
+    @discardableResult
+    func addList() -> UUID {
+        let used = Set(config.lists.map(\.color))
+        let color = ListColor.allCases.first { !used.contains($0) } ?? .sea
+        let list = BlockList(name: config.freeName("New list"), symbol: "lock.fill", color: color)
+        config.lists.append(list)
+        return list.id
+    }
+
+    func update(_ list: BlockList) {
+        guard let index = config.lists.firstIndex(where: { $0.id == list.id }) else { return }
+        config.lists[index] = list
+    }
+
+    /// Changes one list where it is now. Undo uses this: it runs seconds later, when a copy of
+    /// the list taken earlier would put back everything changed since.
+    func mutateList(_ id: UUID, _ change: (inout BlockList) -> Void) {
+        guard let index = config.lists.firstIndex(where: { $0.id == id }) else { return }
+        change(&config.lists[index])
+    }
+
+    @discardableResult
+    func duplicate(_ list: BlockList) -> UUID {
+        var copy = list
+        copy.id = UUID()
+        copy.name = config.freeName("\(list.name) copy")
+        config.lists.append(copy)
+        return copy.id
+    }
+
+    /// Deletes a list and its schedules. The last list can't go: every block starts from one.
+    func delete(_ list: BlockList) {
+        guard config.lists.count > 1 else { return }
+        config.schedules.removeAll { self.list(for: $0)?.id == list.id }
+        config.lists.removeAll { $0.id == list.id }
+        if config.next.listID == list.id { config.next.listID = config.lists.first?.id }
+    }
+
+    /// Whether a running block holds a site, and through what: YouTube Shorts can be held by
+    /// youtube.com, by Video, or by the whole web, even with it unticked here.
+    func hold(site pattern: String) -> Hold? {
         guard let rule = SiteRule(pattern) else { return nil }
-        return sessions
-            .filter { $0.sites.contains { SiteRule($0)?.covers(rule) == true } }
-            .map(\.endsAt).max()
+        let covers = { (other: String) in SiteRule(other)?.covers(rule) == true }
+        return latest(sessions.compactMap { session in
+            if session.blocksWholeWeb {
+                return session.allowedSites.contains(where: covers) ? nil : Hold(until: session.endsAt, by: "the whole web")
+            }
+            if let site = session.sites.first(where: covers) {
+                let name = SiteRule(site)?.displayName ?? site
+                return Hold(until: session.endsAt, by: SiteRule(site) == rule ? nil : name)
+            }
+            if let group = session.groups.first(where: { $0.sites.contains(where: covers) }) {
+                return Hold(until: session.endsAt, by: group.title)
+            }
+            return nil
+        })
     }
 
-    func blockedUntil(app bundleID: String) -> Date? {
-        sessions.filter { $0.blockedBundleIDs.contains(bundleID) }.map(\.endsAt).max()
+    func hold(app bundleID: String) -> Hold? {
+        latest(sessions.filter { $0.blockedBundleIDs.contains(bundleID) }.map { Hold(until: $0.endsAt, by: nil) })
     }
 
-    func blockedUntil(group: SiteGroup) -> Date? {
-        sessions.filter { $0.groups.contains(group) }.map(\.endsAt).max()
+    func hold(group: SiteGroup) -> Hold? {
+        latest(sessions.compactMap { session in
+            if session.groups.contains(group) { return Hold(until: session.endsAt, by: nil) }
+            if session.blocksWholeWeb, group != .games { return Hold(until: session.endsAt, by: "the whole web") }
+            return nil
+        })
     }
 
-    func addGroup(_ group: SiteGroup) {
-        if !config.groups.contains(where: { $0.group == group }) { config.groups.append(GroupItem(group: group)) }
+    private func latest(_ holds: [Hold]) -> Hold? {
+        holds.max { $0.until < $1.until }
     }
 
-    func removeGroup(_ item: GroupItem) {
-        config.groups.removeAll { $0.group == item.group }
-    }
-
-    /// Saves what's switched on under `name`, replacing a list of the same name.
-    func saveList(_ name: String) {
-        let name = name.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        let list = config.selection(named: name)
-        if let i = config.lists.firstIndex(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
-            config.lists[i] = list
-        } else {
-            config.lists.append(list)
-        }
-    }
-
-    func applyList(_ list: SavedList) {
-        config.apply(list)
-    }
-
-    func deleteList(_ list: SavedList) {
-        config.lists.removeAll { $0.name == list.name }
-    }
-
-    /// Sites Whole web leaves open. False if the text isn't a site.
-    func allowSite(_ pattern: String) -> Bool {
-        guard let rule = SiteRule(pattern) else { return false }
-        if !config.allowedSites.contains(rule.description) { config.allowedSites.append(rule.description) }
-        return true
-    }
-
-    func disallowSite(_ pattern: String) {
-        config.allowedSites.removeAll { $0 == pattern }
-    }
-
-    var otherBrowsersBlockedUntil: Date? {
-        sessions.filter(\.blocksOtherBrowsers).map(\.endsAt).max()
-    }
-
-    func addSite(_ pattern: String) -> Bool {
-        guard let rule = SiteRule(pattern) else { return false }
-        if !config.sites.contains(where: { $0.pattern == rule.description }) {
-            config.sites.append(SiteItem(pattern: rule.description))
-        }
-        return true
-    }
-
-    func removeSite(_ item: SiteItem) {
-        config.sites.removeAll { $0.id == item.id }
-    }
-
-    func removeApp(_ item: AppItem) {
-        config.apps.removeAll { $0.id == item.id }
-    }
-
-    func pickApps() {
+    /// Apps picked in an Open panel, as list items. Seawall and Finder can't be blocked.
+    func pickApps() -> [ListApp] {
         let panel = NSOpenPanel()
         panel.title = "Apps to close during a block"
         panel.prompt = "Add"
@@ -669,14 +622,8 @@ final class BlockController: ObservableObject {
         panel.canChooseDirectories = false
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         NSApp.activate()
-        guard panel.runModal() == .OK else { return }
-
-        let excluded: Set<String> = [Bundle.main.bundleIdentifier ?? "", "com.apple.finder"]
-        for url in panel.urls {
-            guard let id = Bundle(url: url)?.bundleIdentifier, !excluded.contains(id),
-                  !config.apps.contains(where: { $0.bundleID == id }) else { continue }
-            config.apps.append(AppItem(bundleID: id, name: url.deletingPathExtension().lastPathComponent, path: url.path))
-        }
+        guard panel.runModal() == .OK else { return [] }
+        return panel.urls.compactMap(InstalledApps.item(at:))
     }
 
     // MARK: - Browser permission
@@ -728,4 +675,11 @@ final class BlockController: ObservableObject {
     private func setAccess(_ access: BrowserAccess, for browser: BrowserGuard) {
         if browserAccess[browser.bundleID] != access { browserAccess[browser.bundleID] = access }
     }
+}
+
+/// A running block holding something in a list: until when, and through what, when that's
+/// something else ("YouTube" holding YouTube Shorts).
+struct Hold {
+    let until: Date
+    let by: String?
 }

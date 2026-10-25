@@ -49,10 +49,12 @@ public struct Session: Codable, Equatable, Sendable {
     public var siteAttempts = 0
     public var appAttempts = 0
     public var unlockRequestedAt: Date?
+    /// The list it came from, for its name and colour while it runs; `nil` for older blocks.
+    public var label: SessionLabel?
 
     public init(startedAt: Date, endsAt: Date, sites: [String], apps: [BlockedApp], blocksOtherBrowsers: Bool,
                 groups: [SiteGroup] = [], allowedSites: [String] = [], earlyExit: EarlyExit = .wait10,
-                rounds: Rounds? = nil) {
+                rounds: Rounds? = nil, label: SessionLabel? = nil) {
         self.startedAt = startedAt
         self.endsAt = endsAt
         self.sites = sites
@@ -62,6 +64,52 @@ public struct Session: Codable, Equatable, Sendable {
         self.allowedSites = allowedSites
         self.earlyExit = earlyExit
         self.rounds = rounds
+        self.label = label
+    }
+
+    /// A block of what `list` holds. `otherBrowsersInstalled` decides whether its
+    /// "Other browsers" switch has anything to close.
+    public init(_ list: BlockList, startedAt: Date, endsAt: Date, earlyExit: EarlyExit, rounds: Rounds? = nil,
+                otherBrowsersInstalled: Bool) {
+        self.init(startedAt: startedAt, endsAt: endsAt, sites: list.enabledSites, apps: list.enabledApps,
+                  blocksOtherBrowsers: list.otherBrowsers && otherBrowsersInstalled,
+                  groups: list.sessionGroups, allowedSites: list.mode == .allExcept ? list.allowed : [],
+                  earlyExit: earlyExit, rounds: rounds,
+                  label: SessionLabel(listID: list.id, name: list.name, symbol: list.symbol, color: list.color))
+    }
+
+    /// Covers nothing at all, so there's no point starting it.
+    public var isEmpty: Bool { allSites.isEmpty && apps.isEmpty && groups.isEmpty && !blocksOtherBrowsers }
+
+    // MARK: - Tightening a running block
+
+    /// Locks for longer: `seconds` more, or for a block in rounds, as many more rounds.
+    public mutating func extend(by seconds: TimeInterval) {
+        guard seconds > 0 else { return }
+        if var rounds {
+            let extra = max(1, Int((seconds / (rounds.work + rounds.rest)).rounded()))
+            rounds.count += extra
+            self.rounds = rounds
+            endsAt = startedAt + roundsShift + rounds.total
+        } else {
+            endsAt += seconds
+        }
+    }
+
+    /// Adds a site to what's blocked. Only ever stricter: an all-except block has nothing to add.
+    @discardableResult
+    public mutating func add(site pattern: String) -> Bool {
+        guard !blocksWholeWeb, let rule = SiteRule(pattern) else { return false }
+        if !allSites.contains(where: { SiteRule($0)?.covers(rule) == true }) { sites.append(rule.description) }
+        return true
+    }
+
+    public mutating func add(app: BlockedApp) {
+        if !apps.contains(where: { $0.bundleID == app.bundleID }) { apps.append(app) }
+    }
+
+    public mutating func add(group: SiteGroup) {
+        if !groups.contains(group) { groups.append(group) }
     }
 
     /// Which round a block in rounds is in, or `nil` for a block in one stretch.
@@ -90,6 +138,9 @@ public struct Session: Codable, Equatable, Sendable {
         // With the whole web blocked, a browser Seawall can't look into is just a way around it.
         Set((apps + (blocksOtherBrowsers || blocksWholeWeb ? KnownBrowsers.unreadable : [])).map(\.bundleID))
     }
+
+    /// Its list's name, or what it holds for blocks from before lists: "Work", "Twitch and Steam".
+    public var title: String { label?.name ?? names }
 
     /// "Games, YouTube Shorts, Twitch, Steam, other browsers".
     public var names: String {
@@ -131,7 +182,7 @@ public struct Session: Codable, Equatable, Sendable {
 
 extension Session {
     private enum CodingKeys: String, CodingKey {
-        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, earlyExit, rounds, roundsShift, siteAttempts, appAttempts, unlockRequestedAt
+        case startedAt, endsAt, sites, apps, blocksOtherBrowsers, groups, allowedSites, earlyExit, rounds, roundsShift, siteAttempts, appAttempts, unlockRequestedAt, label
     }
 
     /// Blocks saved before groups existed have no `groups`.
@@ -150,6 +201,7 @@ extension Session {
         siteAttempts = try c.decodeIfPresent(Int.self, forKey: .siteAttempts) ?? 0
         appAttempts = try c.decodeIfPresent(Int.self, forKey: .appAttempts) ?? 0
         unlockRequestedAt = try c.decodeIfPresent(Date.self, forKey: .unlockRequestedAt)
+        label = try c.decodeIfPresent(SessionLabel.self, forKey: .label)
     }
 }
 
@@ -164,6 +216,21 @@ extension [Session] {
     /// again, so the attempt counts there.
     public func lastEnding(where covers: (Session) -> Bool) -> Int? {
         indices.filter { covers(self[$0]) }.max { self[$0].endsAt < self[$1].endsAt }
+    }
+}
+
+/// Which list a block came from, kept with the block so renaming the list later doesn't change it.
+public struct SessionLabel: Codable, Equatable, Sendable {
+    public var listID: UUID
+    public var name: String
+    public var symbol: String
+    public var color: ListColor
+
+    public init(listID: UUID, name: String, symbol: String, color: ListColor) {
+        self.listID = listID
+        self.name = name
+        self.symbol = symbol
+        self.color = color
     }
 }
 

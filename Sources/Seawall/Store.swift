@@ -4,7 +4,7 @@ import Foundation
 struct Store {
     enum File: String {
         /// `session` is the single block of older versions, read once to migrate.
-        case config, sessions, session, summary, finds
+        case config, sessions, session, summary, finds, history
     }
 
     let directory: URL
@@ -28,6 +28,11 @@ struct Store {
             log.error("Can't read \(file.rawValue).json: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+    }
+
+    /// The file's bytes, for formats that need a look before decoding.
+    func data(_ file: File) -> Data? {
+        try? Data(contentsOf: url(file))
     }
 
     func save<T: Encodable>(_ value: T, as file: File) {

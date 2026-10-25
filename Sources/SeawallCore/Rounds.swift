@@ -17,6 +17,13 @@ public struct Rounds: Codable, Equatable, Sendable {
 
     /// From the start of the first round to the end of the last.
     public var total: TimeInterval { Double(count) * work + Double(max(0, count - 1)) * rest }
+
+    /// As many standard rounds as fit in `length`, breaks between them; `nil` when fewer
+    /// than two fit, since one round has no break to take.
+    public static func fitting(_ length: TimeInterval, work: TimeInterval = standard.work, rest: TimeInterval = standard.rest) -> Rounds? {
+        let count = Int((length + rest) / (work + rest))
+        return count >= 2 ? Rounds(count: count, work: work, rest: rest) : nil
+    }
 }
 
 /// Where a block in rounds is: which round, or on a break before the next one.

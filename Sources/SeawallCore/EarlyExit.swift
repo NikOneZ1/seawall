@@ -24,6 +24,24 @@ public enum EarlyExit: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// The level's name: how hard this block is to leave.
+    public var name: String {
+        switch self {
+        case .wait10: "Flexible"
+        case .wait30: "Firm"
+        case .never: "Locked"
+        }
+    }
+
+    /// What the name means, beside it.
+    public var detail: String {
+        switch self {
+        case .wait10: "leave after a 10-minute wait"
+        case .wait30: "leave after a 30-minute wait"
+        case .never: "no way out until it ends"
+        }
+    }
+
     /// The menu's own line under the duration.
     public var menuTitle: String {
         switch self {

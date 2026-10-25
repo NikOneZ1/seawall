@@ -1,8 +1,8 @@
 import SeawallCore
 import SwiftUI
 
-/// How blocks behave, opening at login, and what this copy of Seawall is.
-struct SettingsView: View {
+/// Settings, in the Seawall window: few of them, short labels, standard controls.
+struct SettingsPane: View {
     @EnvironmentObject private var controller: BlockController
     @ObservedObject private var login = LoginItem.shared
     @ObservedObject private var preferences = Preferences.shared
@@ -10,110 +10,92 @@ struct SettingsView: View {
     static let repository = URL(string: "https://github.com/NikOneZ1/seawall")!
 
     var body: some View {
-        ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
-            Deep.label("Blocks")
-                .padding(.top, 12)
-
-            row("Leaving early", "For blocks you start next.") {
+        Form {
+            Section {
                 Picker("Leaving early", selection: $preferences.earlyExit) {
-                    ForEach(EarlyExit.allCases) { Text($0.title).tag($0) }
+                    ForEach(EarlyExit.allCases) { level in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(level.name)
+                            Text(level.detail.prefix(1).uppercased() + level.detail.dropFirst())
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(level)
+                    }
                 }
+                .pickerStyle(.radioGroup)
+                Text("The default for new blocks. You can change it for one block, right under Hold to lock.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Blocks")
             }
 
-            row("Menu bar shows", "While something is blocked.") {
+            Section("Look") {
+                Picker("Show the sea", selection: $preferences.sea) {
+                    ForEach(SeaMode.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Text(seaDetail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Alerts") {
+                Toggle("Notify me 5 minutes before a block ends", isOn: $preferences.notifications)
+                Toggle("Play a soft sound when a block starts and ends", isOn: $preferences.sounds)
+            }
+
+            Section("General") {
                 Picker("Menu bar shows", selection: $preferences.showsTimeLeft) {
                     Text("When it ends").tag(false)
                     Text("Time left").tag(true)
                 }
+                Toggle("Open Seawall at login", isOn: Binding(get: { login.isOn || login.needsApproval }, set: { login.set($0) }))
+                if login.needsApproval {
+                    HStack {
+                        Text("It's switched off in System Settings, Login Items.")
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        Button("Open Login Items…") { login.openSystemSettings() }
+                    }
+                }
+                Toggle("Open the menu from anywhere with \(MenuShortcut.title)", isOn: $preferences.shortcut)
+                Button("Show the Welcome Again") { Panels.showWelcome(controller: controller) }
             }
 
-            switchRow("Notifications", "5 minutes before a block ends, and how it went.", $preferences.notifications)
-            switchRow("Sounds", "A soft sound when a block starts and when it ends.", $preferences.sounds)
-
-            Divider().overlay(Color.white.opacity(0.1))
-
-            SchedulesSection()
-
-            Divider().overlay(Color.white.opacity(0.1))
-
-            Deep.label("General")
-
-            switchRow("Open at login", "Seawall waits in the menu bar from the moment you sign in.",
-                      Binding(get: { login.isOn || login.needsApproval }, set: { login.set($0) }))
-
-            switchRow("Open the menu with \(MenuShortcut.title)", "From any app.", $preferences.shortcut)
-
-            if login.needsApproval {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("It's switched off in System Settings → Login Items.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+            Section("About") {
+                HStack(spacing: Space.m) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Seawall")
+                            .font(.headline)
+                        Text("Version \(Self.version)")
+                            .foregroundStyle(.secondary)
+                        Text("Free and open source, under the GPL-3.0.")
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    QuietButton(title: "Open Login Items…") { login.openSystemSettings() }
+                }
+                HStack {
+                    Link("Source on GitHub", destination: Self.repository)
+                    Spacer()
+                    Link("Report a Problem", destination: Self.repository.appendingPathComponent("issues"))
                 }
             }
-
-            Divider().overlay(Color.white.opacity(0.1))
-
-            Deep.label("About")
-
-            HStack(spacing: 14) {
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 60, height: 60)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Seawall")
-                        .font(.system(size: 18, weight: .semibold))
-                    Text("Version \(Self.version)")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Text("Free and open source, under the GPL-3.0.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            HStack(spacing: 8) {
-                Link(destination: Self.repository) { Text("Source on GitHub") }
-                    .buttonStyle(PillButtonStyle())
-                Link(destination: Self.repository.appendingPathComponent("issues")) { Text("Report a problem") }
-                    .buttonStyle(PillButtonStyle())
-                Spacer()
-            }
-
-            QuietButton(title: "Show the welcome again") { Panels.showWelcome(controller: controller) }
-
-            Spacer(minLength: 0)
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 26)
-        .padding(.top, 24)
-        .padding(.bottom, Deep.floor + 14)
-        }
+        .formStyle(.grouped)
+        .navigationTitle("Settings")
         .onAppear { login.refresh() }
     }
 
-    private func row(_ title: String, _ detail: String, @ViewBuilder control: () -> some View) -> some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13.5, weight: .semibold))
-                Text(detail)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 12)
-            control()
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .fixedSize()
-        }
-    }
-
-    private func switchRow(_ title: String, _ detail: String, _ isOn: Binding<Bool>) -> some View {
-        row(title, detail) {
-            Toggle(title, isOn: isOn).toggleStyle(.switch)
+    private var seaDetail: String {
+        switch preferences.sea {
+        case .always: "The menu is always underwater, like the block page."
+        case .whileLocked: "The menu is clear glass. Water rises as you hold to lock and stays while you're locked."
+        case .never: "A plain menu that follows light and dark mode. The sea stays on the block page."
         }
     }
 

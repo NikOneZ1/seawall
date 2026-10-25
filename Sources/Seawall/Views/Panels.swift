@@ -1,40 +1,66 @@
 import AppKit
 import SwiftUI
 
-/// Ordinary windows for what doesn't fit in the menu: the welcome and Settings. They sit in
-/// the same still water as the menu. Seawall has no Dock icon, so opening one has to bring
-/// the app forward itself.
+/// The Seawall window and the welcome. Seawall has no Dock icon, so opening one has to bring
+/// the app forward itself, onto whatever Space is in front.
 @MainActor
 enum Panels {
     private static var windows: [String: NSWindow] = [:]
+    static let main = MainWindowModel()
 
-    static func show(_ id: String, title: String, size: NSSize, content: () -> some View) {
-        if let window = windows[id] {
+    /// Opens the Seawall window at a list, Schedules, Today or Settings.
+    static func showMain(_ section: MainSection, controller: BlockController) {
+        MenuShortcut.closeMenu()
+        main.selection = section.resolved(in: controller)
+        if let window = windows["main"] {
             bringForward(window)
             return
         }
-        let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .fullSizeContentView],
-            backing: .buffered, defer: false)
-        window.title = title
-        window.titleVisibility = .hidden
+        let host = NSHostingController(rootView: MainWindowView(model: main).environmentObject(controller))
+        // A real toolbar gives the title its own bar, so scrolled content passes under glass
+        // instead of under the bare title.
+        host.sceneBridgingOptions = [.title, .toolbars]
+        let window = NSWindow(contentViewController: host)
+        window.title = "Seawall"
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+        window.toolbar = NSToolbar(identifier: "SeawallMain")
+        window.toolbarStyle = .unified
+        window.setContentSize(NSSize(width: 780, height: 600))
+        window.contentMinSize = NSSize(width: 680, height: 480)
+        window.isReleasedWhenClosed = false
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window.setFrameAutosaveName("SeawallMain")
+        window.center()
+        windows["main"] = window
+        bringForward(window)
+    }
+
+    /// A new, empty list, picked for the next block and open in the window with its name ready to type.
+    static func showNewList(controller: BlockController) {
+        let id = controller.addList()
+        controller.config.next.listID = id
+        main.focusName = id
+        showMain(.list(id), controller: controller)
+    }
+
+    static func showWelcome(controller: BlockController) {
+        MenuShortcut.closeMenu()
+        if let window = windows["welcome"] {
+            bringForward(window)
+            return
+        }
+        let host = NSHostingController(rootView: WelcomeView().environmentObject(controller))
+        let window = NSWindow(contentViewController: host)
+        window.title = "Welcome to Seawall"
+        window.styleMask = [.titled, .closable, .fullSizeContentView]
         window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        // Open on whatever Space is in front, full-screen apps included, rather than back on
-        // the desktop where the menu click can't be seen to do anything.
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
-        window.appearance = NSAppearance(named: .darkAqua)
-        let host = NSHostingView(rootView: content()
-            .frame(width: size.width, height: size.height)
-            .background(WaterBackground())
-            .environment(\.colorScheme, .dark))
-        // The window keeps the size it was made with instead of following the content.
-        host.sizingOptions = []
-        window.contentView = host
+        window.setContentSize(NSSize(width: 560, height: 640))
         window.center()
-        windows[id] = window
+        windows["welcome"] = window
         bringForward(window)
     }
 
@@ -42,22 +68,35 @@ enum Panels {
         windows[id]?.close()
     }
 
+    /// The menu never makes Seawall the active app, so a plain `activate()` is only a request,
+    /// and with some apps in front macOS turns it down: the window opened behind them and
+    /// its first click went to bringing it forward.
     private static func bringForward(_ window: NSWindow) {
-        NSApp.activate()
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 }
 
-extension Panels {
-    static func showSettings(controller: BlockController) {
-        show("settings", title: "Seawall Settings", size: NSSize(width: 480, height: 680)) {
-            SettingsView().environmentObject(controller)
-        }
-    }
+/// Where the Seawall window is.
+enum MainSection: Hashable {
+    case list(UUID?)
+    case schedules
+    case today
+    case settings
 
-    static func showWelcome(controller: BlockController) {
-        show("welcome", title: "Welcome to Seawall", size: NSSize(width: 460, height: 420)) {
-            WelcomeView().environmentObject(controller)
-        }
+    /// A list section with no list picks the menu's list.
+    @MainActor
+    func resolved(in controller: BlockController) -> MainSection {
+        if case .list(nil) = self { return .list(controller.selectedList?.id) }
+        return self
     }
+}
+
+@MainActor
+final class MainWindowModel: ObservableObject {
+    @Published var selection: MainSection? = .list(nil)
+    /// A list just made, whose name field takes the keyboard when it shows.
+    @Published var focusName: UUID?
+    /// A list whose "Delete?" question should come up, asked for from the sidebar.
+    @Published var deleting: UUID?
 }

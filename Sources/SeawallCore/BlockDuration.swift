@@ -41,7 +41,7 @@ public enum BlockDuration: String, Codable, CaseIterable, Identifiable, Sendable
 
 /// "Until tomorrow, 15:00". The day counts from today, so a saved "tomorrow"
 /// still means the day after whenever the next block is started.
-public struct UntilTime: Codable, Equatable, Sendable {
+public struct UntilTime: Codable, Hashable, Sendable {
     /// Today plus a week ahead.
     public static let days = 0...7
     public static let minuteStep = 5

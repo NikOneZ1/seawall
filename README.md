@@ -1,6 +1,6 @@
 # Seawall
 
-A lock for websites and apps on macOS. Hold "Lock" for a second, and Shorts, Twitch and games stay closed until evening. No changing your mind five seconds later.
+A lock for websites and apps on macOS. Hold the lock for a second, and Shorts, Twitch and games stay closed until evening. No changing your mind five seconds later.
 
 A free, open-source alternative to Cold Turkey Pro and Freedom.
 
@@ -12,19 +12,19 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
   <img src="docs/block-page.jpg" width="480" alt="The page a blocked tab lands on: Blocked until 18:00, over still water with a pebble in the sand">
 </p>
 
-- A lock in the menu bar: pick sites and apps, pick how long, then press and hold "Hold to lock". Holding instead of clicking means no block starts by accident.
-- How long: 15 minutes to 4 hours, until a set time (tonight, tomorrow at 15:00, up to a week ahead), or in rounds: 4 × 25 minutes with 5-minute breaks, when everything opens.
-- Save what you lock as a list, like Work or Evening ("Save what's on as a list…" under + Add). Saved lists sit as small chips under "Lock"; tap one to switch to it.
-- Blocks stack. Twitch until tonight, then YouTube for an hour on top. A new block only adds to what's blocked; it never shortens the ones already running.
+- A lock in the menu bar: pick a list, pick how long, then press and hold "Hold to lock". Holding instead of clicking means no block starts by accident. Right above the button it says exactly what will be locked and until when.
+- Lists hold what you lock, like Work or Evening, each with its own icon and colour. The menu shows them as cards; the Seawall window edits them. Tick what's blocked, and add a site, an app or a category from one search box.
+- How long: 25 minutes, 1 hour or 2 hours in one tap. More lengths and "until" times (end of the workday, tonight, tomorrow morning, any time up to a week ahead) are under More. Switch on breaks to work in 25-minute rounds with 5 minutes off.
+- Blocks stack. Twitch until tonight, then YouTube for an hour on top. A new block only adds to what's blocked; it never shortens the ones already running. A running block can get stricter (30 more minutes, another site, app or list) but never looser.
 - Open Shorts or Twitch and the tab lands on a "Blocked until 18:00" page. Regular YouTube still works.
 - Launch a game and it's closed within a second.
-- One tap covers a whole kind of distraction: under "+ Add" there are Games, Social, Video, News and Shopping, plus popular single sites. Games closes any app macOS lists as a game, even ones you've never added.
-- Or block the whole web. "Whole web" sits under "+ Add" with the groups; once it's on, an Except row lets you keep a few sites open, like your docs or a work tool.
-- There's no stop button. You can ask to leave early and wait 10 minutes; then Seawall asks "End the block now?" for 2 minutes. Don't answer and the request expires. Every block has its own way out. The line under the duration ("Leave early after 10 min") switches it to a 30-minute wait, or no way out at all.
-- Schedules start a saved list on their own, like Work on weekdays from 10:00 to 18:00 (Settings → Schedules).
-- A Focus can start a block too: a Shortcuts automation opens a link like `seawall://lock?list=Work&until=18:00` (or `for=2h`) when the Focus turns on. Settings has the steps and a link to copy. The same link works from Raycast, Alfred or Terminal, and never locks for more than 12 hours.
-- Settings also has: the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds when one starts and ends, and ⌃⌥⌘L to open the menu from anywhere.
-- When a block ends, it tells you how many times you tried to break it.
+- Categories cover a whole kind of distraction: Games, Social, Video, News and Shopping. Games closes any app macOS lists as a game, even ones you've never added.
+- Or block the whole web: switch a list to "Every site except these" and keep a few sites open, like your docs or a work tool.
+- Leaving early is honest friction. Flexible blocks take a 10-minute wait, Firm ones 30 minutes, Locked ones can't be left at all. After the wait you get 2 minutes to end the block; do nothing and it keeps going. Pick the default in Settings, or change it for one block right under the hold button.
+- Schedules start a list on their own, like Work on weekdays from 9:00 to 12:00. Set them inside the list, or paint them on the week grid under Schedules.
+- A Focus can start a block too: a Shortcuts automation opens a link like `seawall://lock?list=Work&until=18:00` (or `for=2h`) when the Focus turns on. Each list walks you through it. The same link works from Raycast, Alfred or Terminal, and never locks for more than 12 hours.
+- Today shows time locked, tries caught, days in a row, and the shells you've picked up on the block page.
+- Settings also has: how much sea the menu shows (always, only while locked, or never), the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds, and ⌃⌥⌘L to open the menu from anywhere.
 
 ## Install
 
@@ -75,7 +75,7 @@ Seawall protects you from an impulse, not from a determined person with a termin
 ## Next
 
 - [x] Schedules (weekdays 10:00–18:00)
-- [ ] Daily stats
+- [x] Daily stats (Today)
 - [x] Icon
 - [ ] A signed release
 

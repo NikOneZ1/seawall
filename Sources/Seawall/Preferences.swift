@@ -31,6 +31,10 @@ final class Preferences: ObservableObject {
     @Published var sounds: Bool {
         didSet { defaults.set(sounds, forKey: "sounds") }
     }
+    /// When the menu shows the sea.
+    @Published var sea: SeaMode {
+        didSet { defaults.set(sea.rawValue, forKey: "sea") }
+    }
 
     private init() {
         defaults.register(defaults: ["showsTimeLeft": false, "shortcut": true, "notifications": true, "sounds": true])
@@ -39,5 +43,21 @@ final class Preferences: ObservableObject {
         shortcut = defaults.bool(forKey: "shortcut")
         notifications = defaults.bool(forKey: "notifications")
         sounds = defaults.bool(forKey: "sounds")
+        sea = SeaMode(rawValue: defaults.string(forKey: "sea") ?? "") ?? .whileLocked
+    }
+}
+
+/// How much sea the menu shows: always, as the sign of a running block, or never.
+enum SeaMode: String, CaseIterable, Identifiable {
+    case always, whileLocked, never
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .always: "Always"
+        case .whileLocked: "While locked"
+        case .never: "Never"
+        }
     }
 }

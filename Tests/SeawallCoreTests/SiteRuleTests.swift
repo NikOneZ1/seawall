@@ -67,7 +67,8 @@ struct SiteRuleTests {
         ("youtube.com/shorts", "YouTube Shorts"), ("twitch.tv", "Twitch"), ("m.youtube.com", "YouTube"),
         ("music.youtube.com", "YouTube Music"),
         ("news.ycombinator.com", "Hacker News"), ("example.org", "Example"), ("bbc.co.uk", "Bbc"),
-        ("reddit.com/r/funny", "Reddit Funny"),
+        ("reddit.com/r/funny", "Reddit Funny"), ("docs.google.com", "Google Docs"),
+        ("docs.example.com", "docs.example.com"), ("m.example.com", "Example"), ("edition.cnn.com", "edition.cnn.com"),
     ])
     func displayNames(_ pattern: String, _ expected: String) throws {
         #expect(try #require(SiteRule(pattern)).displayName == expected)

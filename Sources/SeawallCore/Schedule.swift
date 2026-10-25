@@ -1,7 +1,7 @@
 import Foundation
 
 /// A time of day, like 10:00.
-public struct TimeOfDay: Codable, Hashable, Sendable {
+public struct TimeOfDay: Codable, Hashable, Comparable, Sendable {
     public var hour: Int
     public var minute: Int
 
@@ -11,13 +11,19 @@ public struct TimeOfDay: Codable, Hashable, Sendable {
     }
 
     public var text: String { String(format: "%02d:%02d", hour, minute) }
+
+    public static func < (lhs: TimeOfDay, rhs: TimeOfDay) -> Bool {
+        (lhs.hour, lhs.minute) < (rhs.hour, rhs.minute)
+    }
 }
 
 /// A block that starts on its own, like Work on weekdays from 10:00 to 18:00. The days are the
 /// days it starts on; an end before the start runs past midnight into the next day.
 public struct Schedule: Codable, Identifiable, Equatable, Sendable {
     public var id: UUID
-    /// The saved list it locks.
+    /// The list it locks. Schedules saved before lists had ids only know the name.
+    public var listID: UUID?
+    /// The list's name when the schedule was made, for schedules from before list ids.
     public var listName: String
     /// Weekdays it starts on, as `Calendar` numbers them: 1 is Sunday, 7 is Saturday.
     public var days: Set<Int>
@@ -27,8 +33,9 @@ public struct Schedule: Codable, Identifiable, Equatable, Sendable {
     /// When the last stretch it started began, so one ended early doesn't start again.
     public var lastRun: Date?
 
-    public init(id: UUID = UUID(), listName: String, days: Set<Int>, start: TimeOfDay, end: TimeOfDay) {
+    public init(id: UUID = UUID(), listID: UUID? = nil, listName: String = "", days: Set<Int>, start: TimeOfDay, end: TimeOfDay) {
         self.id = id
+        self.listID = listID
         self.listName = listName
         self.days = days
         self.start = start
@@ -59,6 +66,19 @@ public struct Schedule: Codable, Identifiable, Equatable, Sendable {
     /// "Weekdays, 10:00–18:00".
     public var summary: String {
         "\(Self.dayNames(days)), \(start.text)–\(end.text)"
+    }
+
+    /// "Mon–Fri 9–12", "Daily 22:30–7": short enough for a card.
+    public var shortSummary: String {
+        let days: String
+        switch self.days {
+        case let all where all.count == 7: days = "Daily"
+        case [2, 3, 4, 5, 6]: days = "Mon–Fri"
+        case [1, 7]: days = "Sat–Sun"
+        default: days = Self.dayNames(self.days)
+        }
+        func time(_ t: TimeOfDay) -> String { t.minute == 0 ? "\(t.hour)" : t.text }
+        return "\(days) \(time(start))–\(time(end))"
     }
 
     /// "Every day", "Weekdays", "Weekends", or "Mon, Wed, Fri" in Monday-first order.

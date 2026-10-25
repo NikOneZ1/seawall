@@ -44,6 +44,14 @@ final class MenuShortcut {
         }
     }
 
+    /// Closes the menu if it's open. Left open over a window, it takes that window's first
+    /// click just to close itself. Clicking the lock again, rather than closing the panel
+    /// directly, keeps the menu bar item in step.
+    static func closeMenu() {
+        let open = NSApp.windows.contains { $0.isVisible && $0.className.contains("MenuBarExtraWindow") }
+        if open { openMenu() }
+    }
+
     private static func statusButton(in view: NSView) -> NSStatusBarButton? {
         if let button = view as? NSStatusBarButton { return button }
         for subview in view.subviews {

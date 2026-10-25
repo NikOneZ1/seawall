@@ -10,6 +10,19 @@ public enum Format {
         "\(n) \(plural(n, "attempt", "attempts"))"
     }
 
+    /// "1 site", "23 sites".
+    public static func count(_ n: Int, _ one: String, _ other: String) -> String {
+        "\(n) \(plural(n, one, other))"
+    }
+
+    /// "25 minutes", "1 hour", "1 hour 30 minutes", "4 hours".
+    public static func length(_ minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        let hours = h > 0 ? count(h, "hour", "hours") : nil
+        let mins = m > 0 ? count(m, "minute", "minutes") : nil
+        return [hours, mins].compactMap { $0 }.joined(separator: " ")
+    }
+
     /// "Safari", "Safari and Chrome", "Safari, Chrome and Arc".
     public static func list(_ items: [String]) -> String {
         guard let last = items.last else { return "" }
@@ -50,6 +63,29 @@ public enum Format {
         }
         formatter.dateFormat = "MMM d, HH:mm"
         return formatter.string(from: date)
+    }
+
+    /// "at 18:00", "tomorrow at 09:00", "on Oct 12 at 09:00": a moment that reads in a sentence.
+    public static func when(_ date: Date, relativeTo now: Date, calendar: Calendar = .current) -> String {
+        let formatter = formatter(calendar)
+        formatter.dateFormat = "HH:mm"
+        let time = formatter.string(from: date)
+        if calendar.isDate(date, inSameDayAs: now) { return "at \(time)" }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
+            return "tomorrow at \(time)"
+        }
+        formatter.dateFormat = "MMM d"
+        return "on \(formatter.string(from: date)) at \(time)"
+    }
+
+    /// "09:00–11:30" on one day, "Mon 22:30–01:00" across two, for a span in a list.
+    public static func span(_ start: Date, _ end: Date, relativeTo now: Date, calendar: Calendar = .current) -> String {
+        let formatter = formatter(calendar)
+        formatter.dateFormat = "HH:mm"
+        let range = "\(formatter.string(from: start))–\(formatter.string(from: end))"
+        guard !calendar.isDate(start, inSameDayAs: now) else { return range }
+        formatter.dateFormat = "EEE"
+        return "\(formatter.string(from: start)) \(range)"
     }
 
     /// "22:25" today, "Sat 19:25" on another day — for tight spots.

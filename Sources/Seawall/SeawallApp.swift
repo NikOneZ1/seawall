@@ -56,9 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 final class MenuBarState: ObservableObject {
     /// "18:00", or "1h 24m" left, while anything is blocked.
     @Published private(set) var blockedUntil: String?
+    /// How far along until everything opens, in steps of `SlabGlyph.ringSteps`.
+    @Published private(set) var step: Int?
 
-    func update(_ text: String?) {
+    func update(_ text: String?, progress: Double?) {
         if blockedUntil != text { blockedUntil = text }
+        let step = progress.map { Int(($0 * Double(SlabGlyph.ringSteps)).rounded(.down)) }
+        if self.step != step { self.step = step }
     }
 }
 
@@ -68,9 +72,11 @@ struct MenuBarLabel: View {
     var body: some View {
         if let until = state.blockedUntil {
             HStack(spacing: 4) {
-                Image(nsImage: SlabGlyph.locked)
+                Image(nsImage: SlabGlyph.ring(step: state.step ?? 0))
                 Text(until)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Seawall, locked until \(until)")
         } else {
             Image(nsImage: SlabGlyph.open)
         }

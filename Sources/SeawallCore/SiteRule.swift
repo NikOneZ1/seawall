@@ -32,9 +32,17 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
 
     public var description: String { host + path }
 
-    /// What people call it: "YouTube Shorts", "Twitch", "Hacker News", "Example".
+    /// What people call it: "YouTube Shorts", "Twitch", "Hacker News", "Example". A subdomain
+    /// that isn't a known brand keeps its full address, so docs.example.com never reads as "Example".
     public var displayName: String {
-        let site = brand?.name ?? Self.mainLabel(of: host).capitalized
+        let site: String
+        if let brand {
+            site = brand.name
+        } else if Self.hasOwnSubdomain(host) {
+            return description
+        } else {
+            site = Self.mainLabel(of: host).capitalized
+        }
         guard let section = path.split(separator: "/").last else { return site }
         return site + " " + section.prefix(1).uppercased() + section.dropFirst()
     }
@@ -55,7 +63,13 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
         "reddit.com": "Reddit", "netflix.com": "Netflix", "vk.com": "VK", "linkedin.com": "LinkedIn",
         "news.ycombinator.com": "Hacker News", "discord.com": "Discord", "pinterest.com": "Pinterest",
         "threads.net": "Threads", "kick.com": "Kick", "telegram.org": "Telegram",
-        "music.youtube.com": "YouTube Music",
+        "music.youtube.com": "YouTube Music", "docs.google.com": "Google Docs", "mail.google.com": "Gmail",
+        "drive.google.com": "Google Drive", "news.google.com": "Google News", "github.com": "GitHub",
+        "notion.so": "Notion", "bsky.app": "Bluesky", "snapchat.com": "Snapchat", "tumblr.com": "Tumblr",
+        "primevideo.com": "Prime Video", "disneyplus.com": "Disney+", "hulu.com": "Hulu", "max.com": "Max",
+        "amazon.com": "Amazon", "ebay.com": "eBay", "aliexpress.com": "AliExpress", "temu.com": "Temu",
+        "etsy.com": "Etsy", "roblox.com": "Roblox", "chess.com": "Chess.com", "lichess.org": "Lichess",
+        "store.steampowered.com": "Steam Store", "steamcommunity.com": "Steam Community", "epicgames.com": "Epic Games",
     ]
 
     /// Subdomains that are their own thing rather than part of the parent site: blocking
@@ -71,13 +85,30 @@ public struct SiteRule: Hashable, Sendable, CustomStringConvertible {
         }
     }
 
+    /// Whether `host` has a subdomain beyond its registrable domain, other than a mobile "m.".
+    private static func hasOwnSubdomain(_ host: String) -> Bool {
+        let labels = host.split(separator: ".")
+        let registrable = registrableCount(labels)
+        guard labels.count > registrable else { return false }
+        let sub = labels.dropLast(registrable)
+        return !(sub.count == 1 && ["m", "mobile"].contains(sub.first!))
+    }
+
+    /// How many labels make the registrable domain: two ("example.com"), or three under a
+    /// country's second level ("bbc.co.uk").
+    private static func registrableCount(_ labels: [Substring]) -> Int {
+        guard labels.count >= 3 else { return min(2, labels.count) }
+        let tld = labels[labels.count - 1], second = labels[labels.count - 2]
+        return tld.count == 2 && countrySecondLevels.contains(String(second)) ? 3 : 2
+    }
+
+    private static let countrySecondLevels: Set<String> = ["co", "com", "net", "org", "gov", "ac", "edu", "ne", "or"]
+
     /// "example" in "www.example.com", "bbc" in "bbc.co.uk".
     private static func mainLabel(of host: String) -> String {
-        let labels = host.split(separator: ".").map(String.init)
+        let labels = host.split(separator: ".")
         guard labels.count >= 2 else { return host }
-        let candidate = labels[labels.count - 2]
-        if candidate.count <= 3, labels.count >= 3 { return labels[labels.count - 3] }
-        return candidate
+        return String(labels[labels.count - registrableCount(labels)])
     }
 
     public func matches(_ url: URL) -> Bool {
