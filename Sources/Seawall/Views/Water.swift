@@ -63,13 +63,23 @@ final class Water {
 
     /// While "Hold to lock" is held, the floor starts to lift.
     func pressing(_ on: Bool) {
-        pressedAt = on ? CACurrentMediaTime() : nil
+        // Only the original stirs the floor while it's held; the others keep the water calm.
+        pressedAt = on && Preferences.shared.holdAnimation == .classic ? CACurrentMediaTime() : nil
     }
 
     /// A block just started: a cloud from where the button was, and sand from the whole floor.
     func lock() {
         pressedAt = nil
         let at = pointer ?? SIMD2(0.5, 0.35)
+        guard Preferences.shared.holdAnimation == .classic else {
+            // A slow swell from the button and a little sand, not a storm.
+            for _ in 0..<3 {
+                add(at + SIMD2(.random(in: -0.12...0.12), .random(in: -0.02...0.02)),
+                    force: SIMD2(.random(in: -40...40), .random(in: 60...140)), silt: 0.1, radius: 0.7)
+            }
+            for i in 0..<4 { kick((Float(i) + 0.5) / 4, up: 160, silt: 0.1, radius: 0.8) }
+            return
+        }
         for _ in 0..<8 {
             add(at + SIMD2(.random(in: -0.25...0.25), .random(in: -0.025...0.025)),
                 force: SIMD2(.random(in: -150...150), .random(in: 260...460)), silt: 0.35, radius: 0.9)

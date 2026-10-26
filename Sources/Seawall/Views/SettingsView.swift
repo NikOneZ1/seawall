@@ -39,6 +39,21 @@ struct SettingsPane: View {
                 Text(seaDetail)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                Picker("Hold to lock animation", selection: $preferences.holdAnimation) {
+                    ForEach(HoldAnimation.allCases) { style in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(style.title)
+                            Text(style.detail)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .tag(style)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                Text("To preview one, hold Hold to lock and let go before it takes: nothing is locked. The sea needs \"While locked\" above.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Alerts") {

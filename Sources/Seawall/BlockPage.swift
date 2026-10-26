@@ -13,21 +13,24 @@ let blockPageHTML = #"""
   :root { color-scheme: dark; --soft: rgba(255,255,255,.82); --faint: rgba(255,255,255,.55); --shadow: 0 1px 12px rgba(0,20,30,.6);
     --sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
+  /* Nothing here is position: fixed, on purpose. Safari 26 reads fixed elements that touch the window's edges (the
+     full-window canvas, the brand, the dock) as page chrome and draws a Liquid Glass bar behind each edge: two empty
+     bars, top and bottom. The page never scrolls, so absolute lays out the same and Safari leaves the edges alone. */
+  html, body { margin: 0; height: 100%; background: #0C3440; }
   body { background: #0C3440; color: #fff; font: 17px/1.45 var(--sf); -webkit-font-smoothing: antialiased; overflow: hidden; }
-  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+  #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
   #gl.grab { cursor: pointer; }
   /* The message is drawn into the water; this text is for VoiceOver, and becomes the page without WebGL2. */
   main { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .plain { background: linear-gradient(#2C8296, #0C3440); }
   .plain #gl { display: none; }
-  .plain main { position: fixed; inset: 0; width: auto; height: auto; clip-path: none; white-space: normal; display: grid; place-content: center; text-align: center; padding: 24px; }
+  .plain main { position: absolute; inset: 0; width: auto; height: auto; clip-path: none; white-space: normal; display: grid; place-content: center; text-align: center; padding: 24px; }
   main h1 { margin: 0 0 8px; font-size: clamp(32px, 6vw, 64px); line-height: 1.1; letter-spacing: -.03em; font-weight: 700; }
   main p { margin: 0; color: var(--soft); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .brand { position: fixed; left: 22px; top: calc(18px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--soft); pointer-events: none; text-shadow: var(--shadow); }
+  .brand { position: absolute; left: 22px; top: calc(18px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--soft); pointer-events: none; text-shadow: var(--shadow); }
   .brand svg { width: 14px; height: 14px; fill: currentColor; }
-  .finds { position: fixed; right: 22px; top: calc(18px + env(safe-area-inset-top, 0px)); font: 600 11px/1 var(--mono); letter-spacing: .1em; color: rgba(200,240,240,.75); pointer-events: none; text-shadow: var(--shadow); }
-  .dock { position: fixed; left: 0; right: 0; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); display: grid; justify-items: center; gap: 12px; padding: 0 16px; pointer-events: none; }
+  .finds { position: absolute; right: 22px; top: calc(18px + env(safe-area-inset-top, 0px)); font: 600 11px/1 var(--mono); letter-spacing: .1em; color: rgba(200,240,240,.75); pointer-events: none; text-shadow: var(--shadow); }
+  .dock { position: absolute; left: 0; right: 0; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); display: grid; justify-items: center; gap: 12px; padding: 0 16px; pointer-events: none; }
   .line { font-size: 13.5px; color: var(--faint); text-align: center; text-shadow: var(--shadow); min-height: 1.4em; font-variant-numeric: tabular-nums; }
   .open { pointer-events: auto; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,.92); color: #0B2D36; text-decoration: none; }
   .open:hover { background: #fff; }

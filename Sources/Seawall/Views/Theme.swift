@@ -149,7 +149,8 @@ final class Dive: ObservableObject {
         } else if surfacing {
             return
         }
-        withAnimation(on ? .linear(duration: HoldButton.holdTime) : .easeOut(duration: 0.25)) {
+        let style = Preferences.shared.holdAnimation
+        withAnimation(on ? style.holdCurve : style.releaseCurve) {
             depth = on ? 1 : 0
         }
     }
@@ -176,6 +177,7 @@ struct HoldButton: View {
     @Environment(\.seaSurface) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var dive = Dive.shared
+    @ObservedObject private var preferences = Preferences.shared
     @State private var pressing = false
     @State private var flash = false
     @State private var keyHold: DispatchWorkItem?
@@ -189,17 +191,21 @@ struct HoldButton: View {
         let ink = isEnabled ? (water ? Deep.ink : .onSeaFill) : Color.secondary
         ZStack(alignment: .leading) {
             shape.fill(fill)
-            // The hold's progress, as a tide moving across.
-            GeometryReader { proxy in
-                shape.fill(water ? Color.sea.opacity(0.35) : .seaTide)
-                    .frame(width: proxy.size.width * (isEnabled ? dive.depth : 0))
-            }
-            .clipShape(shape)
+            // The hold's progress, drawn the way Settings' "Hold to lock animation" says.
+            HoldFill(progress: isEnabled ? dive.depth : 0, style: preferences.holdAnimation,
+                     color: water ? Color.sea.opacity(0.35) : .seaTide)
+                .clipShape(shape)
             label
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity)
         }
         .frame(height: 36)
+        // The menu's sea blooms from here.
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: HoldPointKey.self, value: proxy.frame(in: .named(HoldPointKey.space)).center)
+            }
+        }
         .overlay { shape.strokeBorder(Color.white.opacity(flash ? 0.9 : 0), lineWidth: 2) }
         .shadow(color: .black.opacity(0.12), radius: 1.5, y: 1)
         .contentShape(shape)
@@ -263,6 +269,64 @@ struct HoldButton: View {
         pressing = false
         onPressing(false)
         action()
+    }
+}
+
+/// Where the hold button's middle is, in the menu's own coordinates.
+struct HoldPointKey: PreferenceKey {
+    static let space = "seawall.menu"
+    static let defaultValue: CGPoint? = nil
+    static func reduce(value: inout CGPoint?, nextValue: () -> CGPoint?) {
+        value = nextValue() ?? value
+    }
+}
+
+extension CGRect {
+    var center: CGPoint { CGPoint(x: midX, y: midY) }
+}
+
+/// A hold's progress across the button. Animatable, so SwiftUI hands it every in-between
+/// value of the hold's curve and the gradients below are redrawn for each one.
+private struct HoldFill: View, Animatable {
+    var progress: Double
+    let style: HoldAnimation
+    let color: Color
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        let p = min(max(progress, 0), 1)
+        GeometryReader { proxy in
+            switch style {
+            case .classic:
+                // A bar from the leading edge.
+                Rectangle().fill(color).frame(width: proxy.size.width * p)
+            case .tide:
+                // The same sweep, with a soft front instead of an edge.
+                let feather = 0.45
+                let front = p * (1 + feather)
+                Rectangle().fill(LinearGradient(stops: [
+                    .init(color: color, location: min(max(front - feather, 0), 1)),
+                    .init(color: color.opacity(0), location: min(max(front, 0), 1)),
+                ], startPoint: .leading, endPoint: .trailing))
+                .opacity(min(1, p * 8))
+            case .bloom:
+                // A soft circle opening from the middle.
+                let reach = proxy.size.width / 2 / 0.55
+                Rectangle().fill(RadialGradient(stops: [
+                    .init(color: color, location: 0),
+                    .init(color: color, location: 0.55),
+                    .init(color: color.opacity(0), location: 1),
+                ], center: .center, startRadius: 0, endRadius: max(1, reach * p * 1.02)))
+                .opacity(min(1, p * 8))
+            case .tint:
+                // The whole button warms at once.
+                Rectangle().fill(color).opacity(p)
+            }
+        }
     }
 }
 
