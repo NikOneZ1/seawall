@@ -30,6 +30,7 @@ struct MenuView: View {
         .padding(.bottom, Space.m)
         .frame(width: 320)
         .calmEdges()
+        .background { GeometryReader { PanelFit(height: $0.size.height) } }
         .onAppear {
             controller.refreshBrowserAccess()
         }
@@ -87,6 +88,31 @@ extension View {
             self.scrollEdgeEffectHidden(true, for: .all)
         } else {
             self
+        }
+    }
+}
+
+/// Keeps the menu bar panel exactly as tall as what it shows.
+///
+/// `MenuBarExtra(.window)` sizes its panel when it opens, and doesn't follow the content
+/// after that. Locking, a block ending or "Add" swap the content for a shorter or taller one
+/// while the panel is open, and the old height stayed: a strip of empty glass above and below
+/// the content, with the content floating in it. This resizes the panel to the content,
+/// keeping its top edge under the menu bar.
+private struct PanelFit: NSViewRepresentable {
+    let height: CGFloat
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        let height = height
+        DispatchQueue.main.async {
+            guard let window = view.window, height > 1,
+                  abs(window.frame.height - height) > 0.5 else { return }
+            var frame = window.frame
+            frame.origin.y = frame.maxY - height
+            frame.size.height = height
+            window.setFrame(frame, display: true)
         }
     }
 }
