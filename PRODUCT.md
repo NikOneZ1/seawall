@@ -21,7 +21,7 @@ Seawall locks websites and apps on a Mac for a chosen time. Starting takes a del
 - No browser extension: it reads tab addresses over Apple Events and swaps blocked tabs for a calm local page.
 - Blocks stack and only ever add: a new block never loosens a running one.
 - The commitment is physical (hold to lock) and the way out is honest friction (a 10- or 30-minute wait, or none), not a password game.
-- A plain, standard Mac menu in light and dark mode; the block page is due a redesign.
+- A plain, standard Mac menu in light and dark mode; the blocked-site page is flat too (breathe, what brought you here, stack), chosen in Settings.
 
 ## Operating Context
 
@@ -31,14 +31,14 @@ Lives in the menu bar, no Dock icon. Starts blocks from the menu, from schedules
 
 Kept for release: saved lists, categories (Games, Social, Video, News, Shopping), block the whole web with exceptions, apps, other browsers, durations and "until" times, rounds with breaks, strictness levels, schedules, start with a Focus, notifications, sounds, keyboard shortcut, time left in the menu bar, daily stats, launch at login, first-run welcome, Settings and About, automatic updates.
 
-Later: intention on the block page, type-to-lock, accessibility pass beyond the redesign floor, word rules, sync between Macs. Dropped: Homebrew cask, anti-uninstall, translations, import/export of lists, accountability, Safari extension, share cards, iPhone version.
+Later: type-to-lock, accessibility pass beyond the redesign floor, word rules, sync between Macs. Dropped: Homebrew cask, anti-uninstall, translations, import/export of lists, accountability, Safari extension, share cards, iPhone version.
 
 Engine constraints: blocks run on a monotonic clock; running blocks keep their own copy of what they cover; Seawall can't stop a determined person with a terminal.
 
 ## Brand Commitments
 
 - Name: Seawall. Tilted-lock app icon and menu bar glyph.
-- The water/sea visuals were removed from the menu on 2026-10-26; the block page is to be redesigned.
+- The water/sea visuals were removed from the menu on 2026-10-26; the blocked-site page was redesigned on 2026-10-26 (breathe, what brought you here, stack; picked in Settings, Random by default).
 - Hold to lock stays (confirmed 2026-10-20).
 - Voice: plain, kind, short. No guilt, no streak pressure, no shouting.
 

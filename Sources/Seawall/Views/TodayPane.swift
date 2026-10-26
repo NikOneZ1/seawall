@@ -2,7 +2,7 @@ import SeawallCore
 import SwiftUI
 
 /// Today in numbers: time locked, tries caught, days in a row, today's timeline, the last few
-/// blocks, and everything found in the sand of the block page.
+/// blocks, and any shells found in the sand on earlier block pages.
 struct TodayPane: View {
     @EnvironmentObject private var controller: BlockController
 
@@ -17,7 +17,7 @@ struct TodayPane: View {
                 }
                 timeline
                 recent
-                finds
+                if !controller.finds.isEmpty { finds }
             }
             .padding(Space.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,9 +114,7 @@ struct TodayPane: View {
             Text("Found in the sand")
                 .font(.headline)
             if controller.finds.isEmpty {
-                Text("When a blocked page catches you, look at the sand. Something is sometimes lying there to pick up.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                EmptyView()
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: Space.s)], spacing: Space.s) {
                     ForEach(Array(controller.finds.reversed().enumerated()), id: \.offset) { index, find in

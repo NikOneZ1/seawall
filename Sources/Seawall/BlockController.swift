@@ -77,6 +77,7 @@ final class BlockController: ObservableObject {
         MenuShortcut.shared.update(Preferences.shared.shortcut)
         pageServer.finds = { [weak self] in self?.finds.map(\.kind.rawValue) ?? [] }
         pageServer.onFind = { [weak self] kind in self?.addFind(kind) ?? false }
+        pageServer.choice = { Preferences.shared.blockedPage }
         pageServer.start()
         appGuard.onAttempt = { [weak self] app in
             log.info("Closed \(app.bundleIdentifier ?? "?", privacy: .public)")

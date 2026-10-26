@@ -1,7 +1,8 @@
 import Foundation
 import Network
+import SeawallCore
 
-/// Serves the "blocked" page on localhost. Blocked browser tabs are sent here; the page
+/// Serves the "blocked" page on localhost, the one picked in Settings. Blocked browser tabs are sent here; the page
 /// gets the end time and the original URL in the query and does the rest itself.
 /// It also reads and adds its finds here: `GET /finds`, `POST /find?kind=star`.
 @MainActor
@@ -12,6 +13,8 @@ final class BlockPageServer {
     private(set) var port: UInt16?
     /// Kinds of everything found so far, oldest first.
     var finds: () -> [String] = { [] }
+    /// Which page to serve; asked on every page load, so a change in Settings is there at once.
+    var choice: () -> BlockedPageChoice = { .random }
     /// Records a find; false if the kind is unknown.
     var onFind: (String) -> Bool = { _ in false }
 
@@ -99,7 +102,7 @@ final class BlockPageServer {
         case (_, let path) where path.hasPrefix("/favicon"):
             return ("404 Not Found", "text/plain", Data())
         default:
-            return ("200 OK", "text/html; charset=utf-8", Data(blockPageHTML.utf8))
+            return ("200 OK", "text/html; charset=utf-8", Data(BlockedPage.html(for: choice()).utf8))
         }
     }
 }

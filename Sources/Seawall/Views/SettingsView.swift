@@ -27,6 +27,12 @@ struct SettingsPane: View {
                 Text("The default for new blocks. You can change it for one block, right under Hold to lock.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                Picker("Blocked page", selection: $preferences.blockedPage) {
+                    ForEach(BlockedPageChoice.allCases) { Text($0.title).tag($0) }
+                }
+                Text(preferences.blockedPage.detail + " It's what a blocked tab shows.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             } header: {
                 Text("Blocks")
             }

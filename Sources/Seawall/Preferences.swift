@@ -32,6 +32,11 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(sounds, forKey: "sounds") }
     }
 
+    /// Which page a blocked tab lands on.
+    @Published var blockedPage: BlockedPageChoice {
+        didSet { defaults.set(blockedPage.rawValue, forKey: "blockedPage") }
+    }
+
     private init() {
         defaults.register(defaults: ["showsTimeLeft": false, "shortcut": true, "notifications": true, "sounds": true])
         earlyExit = EarlyExit(rawValue: defaults.string(forKey: "earlyExit") ?? "") ?? .wait10
@@ -39,6 +44,7 @@ final class Preferences: ObservableObject {
         shortcut = defaults.bool(forKey: "shortcut")
         notifications = defaults.bool(forKey: "notifications")
         sounds = defaults.bool(forKey: "sounds")
+        blockedPage = BlockedPageChoice(rawValue: defaults.string(forKey: "blockedPage") ?? "") ?? .random
         // The sea and the hold animations are gone; drop what older versions stored for them.
         defaults.removeObject(forKey: "sea")
         defaults.removeObject(forKey: "holdAnimation")

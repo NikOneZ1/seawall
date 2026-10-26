@@ -9,7 +9,7 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 <p align="center">
   <img src="docs/menu.png" width="320" alt="The Seawall menu: two lists as cards, Work on weekday mornings and Evening, what Work blocks, how long, and a Hold to lock button">
   &nbsp;
-  <img src="docs/block-page.jpg" width="480" alt="The page a blocked tab lands on: Blocked until 18:00, over still water with a pebble in the sand">
+  <img src="docs/blocked-page.png" width="480" alt="The page a blocked tab lands on: a breathing circle, with a switcher between Breathe, What brought you here and Stack">
 </p>
 
 - A lock in the menu bar: pick a list, pick how long, then press and hold "Hold to lock". Holding instead of clicking means no block starts by accident. Right above the button it says exactly what will be locked and until when.
@@ -23,7 +23,8 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 - Leaving early is honest friction. Flexible blocks take a 10-minute wait, Firm ones 30 minutes, Locked ones can't be left at all. After the wait you get 2 minutes to end the block; do nothing and it keeps going. Pick the default in Settings, or change it for one block right under the hold button.
 - Schedules start a list on their own, like Work on weekdays from 9:00 to 12:00. Set them inside the list, or paint them on the week grid under Schedules.
 - A Focus can start a block too: a Shortcuts automation opens a link like `seawall://lock?list=Work&until=18:00` (or `for=2h`) when the Focus turns on. Each list walks you through it. The same link works from Raycast, Alfred or Terminal, and never locks for more than 12 hours.
-- Today shows time locked, tries caught, days in a row, and the shells you've picked up on the block page.
+- Today shows time locked, tries caught and days in a row.
+- A blocked tab lands on a calm page that offers a way out of the urge: one slow breath, a question about what brought you here, or a 30-second game of stacking blocks. Pick which one in Settings under Blocked page: Random (the default), Breathe, What brought you here, Stack, or All together with a switcher at the top. The page shows the site and the time left, and keeps only its own counters (breaths, wins and best stack) in the browser.
 - Settings also has: the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds, and ⌃⌥⌘L to open the menu from anywhere.
 
 ## Install
