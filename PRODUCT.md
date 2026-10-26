@@ -21,7 +21,7 @@ Seawall locks websites and apps on a Mac for a chosen time. Starting takes a del
 - No browser extension: it reads tab addresses over Apple Events and swaps blocked tabs for a calm local page.
 - Blocks stack and only ever add: a new block never loosens a running one.
 - The commitment is physical (hold to lock) and the way out is honest friction (a 10- or 30-minute wait, or none), not a password game.
-- A calm sea world shared by the menu and the block page.
+- A plain, standard Mac menu in light and dark mode; the block page is due a redesign.
 
 ## Operating Context
 
@@ -38,7 +38,7 @@ Engine constraints: blocks run on a monotonic clock; running blocks keep their o
 ## Brand Commitments
 
 - Name: Seawall. Tilted-lock app icon and menu bar glyph.
-- The sea stays part of Seawall in some form (confirmed 2026-10-20).
+- The water/sea visuals were removed from the menu on 2026-10-26; the block page is to be redesigned.
 - Hold to lock stays (confirmed 2026-10-20).
 - Voice: plain, kind, short. No guilt, no streak pressure, no shouting.
 
@@ -48,7 +48,7 @@ Real screenshots of every current state can be regenerated with the scratch harn
 
 ## Product Principles
 
-1. It should feel like a real Mac app first: standard controls, keyboard and VoiceOver work. The sea adds character on top.
+1. It should feel like a real Mac app first: standard controls, keyboard and VoiceOver work.
 2. Starting is easy and deliberate; loosening is slow. Never make leaving early cheaper than it is today.
 3. Show only what's needed now; everything else has one obvious home.
 4. No feature is cut by the redesign; things move or wait until needed.
@@ -56,4 +56,4 @@ Real screenshots of every current state can be regenerated with the scratch harn
 
 ## Accessibility & Inclusion
 
-Text contrast 4.5:1 up to 17 pt. State never by colour alone. Every control named for VoiceOver, reachable by keyboard; the hold has a keyboard and VoiceOver path. Reduce Motion replaces water motion with fades.
+Text contrast 4.5:1 up to 17 pt. State never by colour alone. Every control named for VoiceOver, reachable by keyboard; the hold has a keyboard and VoiceOver path. Reduce Motion turns off the hold's fill animation.

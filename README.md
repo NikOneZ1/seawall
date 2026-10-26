@@ -24,7 +24,7 @@ A free, open-source alternative to Cold Turkey Pro and Freedom.
 - Schedules start a list on their own, like Work on weekdays from 9:00 to 12:00. Set them inside the list, or paint them on the week grid under Schedules.
 - A Focus can start a block too: a Shortcuts automation opens a link like `seawall://lock?list=Work&until=18:00` (or `for=2h`) when the Focus turns on. Each list walks you through it. The same link works from Raycast, Alfred or Terminal, and never locks for more than 12 hours.
 - Today shows time locked, tries caught, days in a row, and the shells you've picked up on the block page.
-- Settings also has: how much sea the menu shows (always, only while locked, or never), the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds, and ⌃⌥⌘L to open the menu from anywhere.
+- Settings also has: the time left instead of the end time in the menu bar, a notification 5 minutes before a block ends, soft sounds, and ⌃⌥⌘L to open the menu from anywhere.
 
 ## Install
 

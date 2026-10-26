@@ -15,7 +15,7 @@ struct WelcomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottomLeading) {
-                WaterBackground()
+                Color.primary.opacity(0.04)
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
                     .frame(width: 56, height: 56)

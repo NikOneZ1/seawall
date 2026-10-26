@@ -18,34 +18,18 @@ extension Font {
     static let timer = Font.system(size: 34, weight: .semibold).monospacedDigit()
 }
 
-// MARK: - Surfaces and colour
-
-/// What the menu is drawn on: clear system glass, or the sea. Controls pick their look from it.
-enum SeaSurface {
-    case glass, water
-}
-
-private struct SeaSurfaceKey: EnvironmentKey {
-    static let defaultValue = SeaSurface.glass
-}
-
-extension EnvironmentValues {
-    var seaSurface: SeaSurface {
-        get { self[SeaSurfaceKey.self] }
-        set { self[SeaSurfaceKey.self] = newValue }
-    }
-}
+// MARK: - Colour
 
 extension Color {
-    /// Seawall's teal: deeper in light mode, lighter in dark mode and on the water.
+    /// Seawall's teal: deeper in light mode, lighter in dark mode.
     static let sea = dynamic(light: (0.07, 0.44, 0.49), dark: (0.40, 0.80, 0.84))
     /// The teal behind a filled button's label: white on deep teal in light mode, near-black
     /// on lighter teal in dark mode. White on the light teal measured under 2:1.
     static let seaFill = dynamic(light: (0.07, 0.44, 0.49), dark: (0.36, 0.75, 0.79))
     static let onSeaFill = dynamic(light: (1, 1, 1), dark: (0.02, 0.17, 0.19))
-    /// A hold's progress across a filled button, moving away from the label's colour so the
+    /// A hold's progress across the filled button, moving away from the label's colour so the
     /// label only gets easier to read: darker in light mode, lighter in dark mode.
-    static let seaTide = Color(nsColor: NSColor(name: nil) { appearance in
+    static let holdProgress = Color(nsColor: NSColor(name: nil) { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             ? NSColor(white: 1, alpha: 0.32)
             : NSColor(white: 0, alpha: 0.24)
@@ -60,7 +44,7 @@ extension Color {
 }
 
 extension ListColor {
-    /// The list's colour, tuned to read in light mode, dark mode and on the water.
+    /// The list's colour, tuned to read in light mode and dark mode.
     var color: Color {
         switch self {
         case .sea: Self.pair(light: (0.10, 0.56, 0.58), dark: (0.37, 0.81, 0.78))
@@ -84,137 +68,46 @@ extension ListColor {
     }
 }
 
-/// The water from the block page, so the menu and the page a blocked tab lands on look like one place.
-enum Deep {
-    /// Lit water near the surface and deep water below it.
-    static let surface = Color(red: 0.18, green: 0.52, blue: 0.58)
-    static let depth = Color(red: 0.05, green: 0.22, blue: 0.27)
-    static let ink = Color(red: 0.04, green: 0.18, blue: 0.21)
-    static let sandLight = Color(red: 0.50, green: 0.52, blue: 0.42)
-    static let sandDark = Color(red: 0.32, green: 0.36, blue: 0.31)
-    /// Height of the sand at the bottom of the menu.
-    static let floor: CGFloat = 12
-
-    /// The sand's top edge at `u` (0…1 across), in points from the bottom: two slow waves,
-    /// like the floor on the block page. The water shader draws the same line.
-    static func sandTop(at u: CGFloat) -> CGFloat {
-        floor + sin(u * 7) * 2.2 + sin(u * 19 + 1) * 1.1
-    }
-}
-
-/// Water lit from above and a strip of sand: the still version, where Metal isn't available.
-struct WaterBackground: View {
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            LinearGradient(colors: [Deep.surface, Deep.depth], startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [.white.opacity(0.2), .clear], center: UnitPoint(x: 0.65, y: -0.08), startRadius: 0, endRadius: 300)
-            Sand()
-                .fill(LinearGradient(colors: [Deep.sandLight, Deep.sandDark], startPoint: .top, endPoint: .bottom))
-                .frame(height: Deep.floor + 6)
-        }
-        .ignoresSafeArea()
-    }
-}
-
-/// The sand, up to `Deep.sandTop`.
-private struct Sand: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-        for step in 0...64 {
-            let u = CGFloat(step) / 64
-            path.addLine(to: CGPoint(x: rect.minX + rect.width * u, y: rect.maxY - Deep.sandTop(at: u)))
-        }
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
-
 // MARK: - Hold to lock
 
-/// How far the hold has gone: 0 at rest, 1 when the lock takes. The water rises with it
-/// and everything but the button dims, until the button is the only light left.
-@MainActor
-final class Dive: ObservableObject {
-    static let shared = Dive()
-
-    @Published private(set) var depth: Double = 0
-    /// Set by a finished hold, so the release that follows doesn't cut the way back up short.
-    private var surfacing = false
-
-    func press(_ on: Bool) {
-        if on {
-            surfacing = false
-        } else if surfacing {
-            return
-        }
-        let style = Preferences.shared.holdAnimation
-        withAnimation(on ? style.holdCurve : style.releaseCurve) {
-            depth = on ? 1 : 0
-        }
-    }
-
-    /// Back to rest at once, for a button that shows up with a hold left over from before.
-    func reset() {
-        surfacing = false
-        guard depth != 0 else { return }
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) { depth = 0 }
-    }
-
-    /// A moment at the bottom, then back up.
-    func surface() {
-        surfacing = true
-        withAnimation(.easeInOut(duration: 0.6).delay(0.35)) { depth = 0 }
-    }
-}
-
-/// Press and hold to lock: a deliberate second, never a stray click. The capsule fills from
-/// the leading edge while held. Holding Return or Space does the same from the keyboard,
-/// and VoiceOver gets a plain "Lock" action.
+/// Press and hold to lock: a deliberate second, never a stray click. A soft fill moves across
+/// the button while held, easing in and out. Holding Return or Space does the same from the
+/// keyboard, and VoiceOver gets a plain "Lock" action.
 struct HoldButton: View {
     static let holdTime = 0.8
 
     let title: String
     let isEnabled: Bool
-    /// Told when a press starts and stops.
-    var onPressing: (Bool) -> Void = { _ in }
     let action: () -> Void
 
-    @Environment(\.seaSurface) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ObservedObject private var dive = Dive.shared
-    @ObservedObject private var preferences = Preferences.shared
+    /// How far the hold has gone, 0 at rest and 1 when the lock takes.
+    @State private var progress: Double = 0
     @State private var pressing = false
+    /// Set by a finished hold, so the release that follows doesn't cut the fill's fade-out short.
+    @State private var completed = false
     @State private var flash = false
     @State private var keyHold: DispatchWorkItem?
     @FocusState private var focused: Bool
 
     var body: some View {
         let shape = Capsule()
-        let water = surface == .water
         // Off, it's a plain grey pill with a readable reason ("Add something to lock"), not faded teal.
-        let fill = isEnabled ? (water ? Color.white : .seaFill) : Color.primary.opacity(0.1)
-        let ink = isEnabled ? (water ? Deep.ink : .onSeaFill) : Color.secondary
+        let fill = isEnabled ? Color.seaFill : Color.primary.opacity(0.1)
+        let ink = isEnabled ? Color.onSeaFill : Color.secondary
         ZStack(alignment: .leading) {
             shape.fill(fill)
-            // The hold's progress, drawn the way Settings' "Hold to lock animation" says.
-            HoldFill(progress: isEnabled ? dive.depth : 0, style: preferences.holdAnimation,
-                     color: water ? Color.sea.opacity(0.35) : .seaTide)
-                .clipShape(shape)
+            // The hold's progress, a soft fill moving across.
+            GeometryReader { proxy in
+                shape.fill(Color.holdProgress)
+                    .frame(width: proxy.size.width * (isEnabled ? progress : 0))
+            }
+            .clipShape(shape)
             label
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity)
         }
         .frame(height: 36)
-        // The menu's sea blooms from here.
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(key: HoldPointKey.self, value: proxy.frame(in: .named(HoldPointKey.space)).center)
-            }
-        }
         .overlay { shape.strokeBorder(Color.white.opacity(flash ? 0.9 : 0), lineWidth: 2) }
         .shadow(color: .black.opacity(0.12), radius: 1.5, y: 1)
         .contentShape(shape)
@@ -242,8 +135,6 @@ struct HoldButton: View {
             }
             return .handled
         }
-        // A fresh button starts empty, whatever the last hold left behind.
-        .onAppear { if !pressing { dive.reset() } }
         .accessibilityElement()
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(title)
@@ -262,11 +153,15 @@ struct HoldButton: View {
 
     private func setPressing(_ value: Bool) {
         pressing = value
-        onPressing(value)
-        if reduceMotion {
-            if !value { dive.press(false) }
-        } else {
-            dive.press(value)
+        guard !reduceMotion else {
+            if !value { progress = 0 }
+            return
+        }
+        if value {
+            completed = false
+            withAnimation(.timingCurve(0.35, 0, 0.25, 1, duration: Self.holdTime)) { progress = 1 }
+        } else if !completed {
+            withAnimation(.easeOut(duration: 0.3)) { progress = 0 }
         }
     }
 
@@ -276,84 +171,25 @@ struct HoldButton: View {
         NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         flash = true
         withAnimation(.easeOut(duration: 0.35).delay(0.3)) { flash = false }
-        dive.surface()
+        // A moment full, then back to empty: the button can be on screen again for another block.
+        completed = true
+        withAnimation(.easeInOut(duration: 0.5).delay(0.35)) { progress = 0 }
         pressing = false
-        onPressing(false)
         action()
     }
 }
 
-/// Where the hold button's middle is, in the menu's own coordinates.
-struct HoldPointKey: PreferenceKey {
-    static let space = "seawall.menu"
-    static let defaultValue: CGPoint? = nil
-    static func reduce(value: inout CGPoint?, nextValue: () -> CGPoint?) {
-        value = nextValue() ?? value
-    }
-}
-
-extension CGRect {
-    var center: CGPoint { CGPoint(x: midX, y: midY) }
-}
-
-/// A hold's progress across the button. Animatable, so SwiftUI hands it every in-between
-/// value of the hold's curve and the gradients below are redrawn for each one.
-private struct HoldFill: View, Animatable {
-    var progress: Double
-    let style: HoldAnimation
-    let color: Color
-
-    var animatableData: Double {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    var body: some View {
-        let p = min(max(progress, 0), 1)
-        GeometryReader { proxy in
-            switch style {
-            case .classic:
-                // A bar from the leading edge.
-                Rectangle().fill(color).frame(width: proxy.size.width * p)
-            case .tide:
-                // The same sweep, with a soft front instead of an edge.
-                let feather = 0.45
-                let front = p * (1 + feather)
-                Rectangle().fill(LinearGradient(stops: [
-                    .init(color: color, location: min(max(front - feather, 0), 1)),
-                    .init(color: color.opacity(0), location: min(max(front, 0), 1)),
-                ], startPoint: .leading, endPoint: .trailing))
-                .opacity(min(1, p * 8))
-            case .bloom:
-                // A soft circle opening from the middle.
-                let reach = proxy.size.width / 2 / 0.55
-                Rectangle().fill(RadialGradient(stops: [
-                    .init(color: color, location: 0),
-                    .init(color: color, location: 0.55),
-                    .init(color: color.opacity(0), location: 1),
-                ], center: .center, startRadius: 0, endRadius: max(1, reach * p * 1.02)))
-                .opacity(min(1, p * 8))
-            case .tint:
-                // The whole button warms at once.
-                Rectangle().fill(color).opacity(p)
-            }
-        }
-    }
-}
-
-/// The one prominent button style in the menu, the hold button's colours at a normal size:
-/// teal on glass, white on the water.
+/// The one prominent button style in the menu, the hold button's colours at a normal size.
 struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.seaSurface) private var surface
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(surface == .water ? Deep.ink : Color.onSeaFill)
+            .foregroundStyle(Color.onSeaFill)
             .padding(.horizontal, Space.m)
             .frame(height: 24)
-            .background(Capsule().fill(surface == .water ? Color.white : Color.seaFill)
+            .background(Capsule().fill(Color.seaFill)
                 .opacity(configuration.isPressed ? 0.8 : (isEnabled ? 1 : 0.4)))
             .contentShape(Capsule())
     }
@@ -386,7 +222,6 @@ struct ListCard: View {
     let action: () -> Void
 
     static let height: CGFloat = 46
-    @Environment(\.seaSurface) private var surface
     @State private var hovering = false
 
     var body: some View {
@@ -420,7 +255,7 @@ struct ListCard: View {
     }
 
     private var selectedFill: Color {
-        list.color.color.opacity(surface == .water ? 0.32 : 0.16)
+        list.color.color.opacity(0.16)
     }
 }
 

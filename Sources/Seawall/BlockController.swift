@@ -155,9 +155,6 @@ final class BlockController: ObservableObject {
     /// When everything is open again.
     var blockedUntil: Date? { sessions.map(\.endsAt).max() }
 
-    /// Attempts across running blocks; the menu's water stirs when it goes up.
-    var totalAttempts: Int { sessions.reduce(0) { $0 + $1.attempts } }
-
     /// The block page reports a find by its kind; anything else is ignored.
     func addFind(_ kind: String) -> Bool {
         guard let kind = Find.Kind(rawValue: kind) else { return false }

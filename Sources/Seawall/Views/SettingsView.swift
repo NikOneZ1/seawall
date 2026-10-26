@@ -31,31 +31,6 @@ struct SettingsPane: View {
                 Text("Blocks")
             }
 
-            Section("Look") {
-                Picker("Show the sea", selection: $preferences.sea) {
-                    ForEach(SeaMode.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                Text(seaDetail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Picker("Hold to lock animation", selection: $preferences.holdAnimation) {
-                    ForEach(HoldAnimation.allCases) { style in
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(style.title)
-                            Text(style.detail)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .tag(style)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-                Text("To preview one, hold Hold to lock and let go before it takes: nothing is locked. The sea needs \"While locked\" above.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
             Section("Alerts") {
                 Toggle("Notify me 5 minutes before a block ends", isOn: $preferences.notifications)
                 Toggle("Play a soft sound when a block starts and ends", isOn: $preferences.sounds)
@@ -104,14 +79,6 @@ struct SettingsPane: View {
         .formStyle(.grouped)
         .navigationTitle("Settings")
         .onAppear { login.refresh() }
-    }
-
-    private var seaDetail: String {
-        switch preferences.sea {
-        case .always: "The menu is always underwater, like the block page."
-        case .whileLocked: "The menu is clear glass. Water rises as you hold to lock and stays while you're locked."
-        case .never: "A plain menu that follows light and dark mode. The sea stays on the block page."
-        }
     }
 
     /// "0.1.0 (1)".

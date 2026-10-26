@@ -6,8 +6,6 @@ struct LockView: View {
     /// Back to the running blocks; `nil` when nothing is blocked yet.
     var back: (() -> Void)?
     @EnvironmentObject private var controller: BlockController
-    @ObservedObject private var dive = Dive.shared
-    @ObservedObject private var preferences = Preferences.shared
     @State private var pickingTime = false
 
     var body: some View {
@@ -24,7 +22,6 @@ struct LockView: View {
                 }
                 breaks
             }
-            .opacity(sunk)
 
             VStack(spacing: Space.s) {
                 Text(summary)
@@ -33,17 +30,13 @@ struct LockView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
                     .help(controller.selectedList?.itemNames.joined(separator: ", ") ?? "")
-                    .opacity(sunk)
-                HoldButton(title: holdTitle, isEnabled: controller.canStart, onPressing: { Water.shared.pressing($0) }) {
-                    Water.shared.lock()
+                HoldButton(title: holdTitle, isEnabled: controller.canStart) {
                     controller.startBlock()
                     back?()
                 }
                 StrictnessMenu()
-                    .opacity(sunk)
             }
             deniedNotice
-                .opacity(sunk)
         }
         // Esc steps back one level: out of the time field, back to the running blocks, then out of the menu.
         .onEscape {
@@ -56,9 +49,6 @@ struct LockView: View {
             }
         }
     }
-
-    /// Everything but the hold button fades while it's held.
-    private var sunk: Double { 1 - 0.6 * dive.depth }
 
     private var header: some View {
         HStack(alignment: .center) {
