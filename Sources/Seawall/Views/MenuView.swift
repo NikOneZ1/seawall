@@ -20,14 +20,16 @@ struct MenuView: View {
                     LockedView(onAdd: { addingBlock = true })
                 }
             }
-            Divider()
-                .padding(.horizontal, -Space.l)
+            // No rule across the panel: it cut the bottom strip off as a band of its own.
+            // Plain space does the separating, so the panel stays one surface.
             TodayStrip()
+                .padding(.top, Space.xs)
         }
         .padding(.horizontal, Space.l)
         .padding(.top, Space.m + 2)
         .padding(.bottom, Space.m)
         .frame(width: 320)
+        .calmEdges()
         .onAppear {
             controller.refreshBrowserAccess()
         }
@@ -73,5 +75,18 @@ struct MoreMenu: View {
         .fixedSize()
         .help("Lists, schedules, settings")
         .accessibilityLabel("More")
+    }
+}
+
+extension View {
+    /// macOS 26 lets scroll views and safe areas draw their own soft glass at the top and bottom
+    /// of a view. The menu is one flat surface with content straight on it, so turn those off.
+    @ViewBuilder
+    func calmEdges() -> some View {
+        if #available(macOS 26.0, *) {
+            self.scrollEdgeEffectHidden(true, for: .all)
+        } else {
+            self
+        }
     }
 }
