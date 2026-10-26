@@ -27,7 +27,7 @@ starts a real block.)
 | --- | --- | --- |
 | `bloom` (default) | Bloom | Water spreads from the hold button in a soft-edged circle until it has covered the menu. The button fills the same way, from its middle. |
 | `tide` | Soft tide | Water fades in from the bottom as a mist, 80% of the menu tall, so there is never an edge. The button fills with a soft-fronted sweep. |
-| `tint` | Tint | Nothing moves across the menu. The sea comes up through itself as one tint and settles from 2.5% larger; the button warms all at once. |
+| `tint` | Tint | Nothing moves across the menu. The whole sea comes up through itself as one tint; the button warms all at once. |
 | `classic` | Rising water | The original, kept for comparison. |
 
 All three new ones share the same ingredients: progress follows an ease-in-out curve
@@ -75,3 +75,17 @@ them.
 (the page never scrolls, so layout is identical), and `html` has the page colour explicitly
 so Safari has nothing else to sample. Blocking, the watchdog, sessions and early-exit rules
 are not touched.
+
+## Follow-up: washed-out controls while locked
+
+A screenshot of the locked popover showed the "Add" menu and "Leave Early…" button as blank
+white shapes. Those are ordinary system controls; they look like that when the popover is in
+its dark, on-the-water mode but the water itself isn't drawn, leaving white-on-light glass.
+So the fault was the sea going missing, not the controls (their code is untouched).
+
+The variants had wrapped the Metal water in extra modifiers (an opacity and, for Tint, a scale)
+on top of the mask it always had. That is the likeliest culprit, and it was not something the
+old code did. Now the water has exactly one modifier, the mask, as before; the fades live
+inside the mask, and every variant ends on the same mask the original sea had (full height,
+short fade at the top). Tint no longer scales. The fill of the hold button also resets to empty
+whenever a hold button appears.

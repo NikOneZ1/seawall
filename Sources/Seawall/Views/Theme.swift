@@ -155,6 +155,15 @@ final class Dive: ObservableObject {
         }
     }
 
+    /// Back to rest at once, for a button that shows up with a hold left over from before.
+    func reset() {
+        surfacing = false
+        guard depth != 0 else { return }
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { depth = 0 }
+    }
+
     /// A moment at the bottom, then back up.
     func surface() {
         surfacing = true
@@ -233,6 +242,8 @@ struct HoldButton: View {
             }
             return .handled
         }
+        // A fresh button starts empty, whatever the last hold left behind.
+        .onAppear { if !pressing { dive.reset() } }
         .accessibilityElement()
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(title)

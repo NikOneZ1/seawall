@@ -147,56 +147,54 @@ private struct SeaReveal<Content: View>: View, Animatable {
     }
 
     var body: some View {
+        // Exactly one modifier on the water: a mask, as before. Opacity and scale are folded
+        // into the mask, so the Metal view underneath is handled the same as ever.
+        content.mask { mask }
+    }
+
+    @ViewBuilder
+    private var mask: some View {
         let p = min(max(progress, 0), 1)
         switch style {
         case .classic:
             // The first version: a mask whose height rises, with a short fade at its top.
-            content
-                .mask(alignment: .bottom) {
-                    LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.06)],
-                                   startPoint: .top, endPoint: .bottom)
-                        .frame(height: size.height * p + (p < 1 ? 14 : 0))
-                        .frame(maxHeight: .infinity, alignment: .bottom)
-                }
+            LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.06)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: size.height * p + (p < 1 ? 14 : 0))
+                .frame(maxHeight: .infinity, alignment: .bottom)
         case .tide:
             // A band of mist, as tall as most of the menu, sliding up until it has passed over everything.
             // Its feather is so wide that there's never an edge to look at.
             let feather = max(size.height, 1) * 0.8
             let front = size.height - p * (size.height + feather)
-            content
-                .opacity(Ease.smooth(p, 0, 0.3))
-                .mask(alignment: .top) {
-                    VStack(spacing: 0) {
-                        LinearGradient(stops: Ease.softStops, startPoint: .top, endPoint: .bottom)
-                            .frame(height: feather)
-                        Color.black.frame(height: size.height)
-                    }
-                    .offset(y: front)
-                    .frame(width: size.width, height: size.height, alignment: .top)
-                }
+            VStack(spacing: 0) {
+                LinearGradient(stops: Ease.softStops, startPoint: .top, endPoint: .bottom)
+                    .frame(height: feather)
+                Color.black.frame(height: size.height)
+            }
+            .offset(y: front)
+            .frame(width: size.width, height: size.height, alignment: .top)
+            .opacity(Ease.smooth(p, 0, 0.3))
+            .mask(Ease.topFade)
         case .bloom:
             // A soft circle from the hold button, wide enough at the end to cover the corners.
             let far = [CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0), CGPoint(x: 0, y: size.height), CGPoint(x: size.width, y: size.height)]
                 .map { hypot($0.x - origin.x, $0.y - origin.y) }.max() ?? size.width
             // Solid for the inner 45% of the radius, then soft: at the end that inner part has passed the farthest corner.
             let radius = max(1, far / 0.45 * p)
-            content
+            RadialGradient(stops: [Gradient.Stop(color: .black, location: 0)]
+                               + Ease.softStops.reversed().map { Gradient.Stop(color: $0.color, location: 0.45 + 0.55 * (1 - $0.location)) },
+                           center: UnitPoint(x: origin.x / max(size.width, 1), y: origin.y / max(size.height, 1)),
+                           startRadius: 0, endRadius: radius)
                 .opacity(Ease.smooth(p, 0, 0.2))
-                .mask {
-                    RadialGradient(stops: [Gradient.Stop(color: .black, location: 0)]
-                                       + Ease.softStops.reversed().map { Gradient.Stop(color: $0.color, location: 0.45 + 0.55 * (1 - $0.location)) },
-                                   center: UnitPoint(x: origin.x / max(size.width, 1), y: origin.y / max(size.height, 1)),
-                                   startRadius: 0, endRadius: radius)
-                }
+                .mask(Ease.topFade)
         case .tint:
-            // Nothing sweeps: the sea comes up through itself and settles from a hair larger.
-            content
-                .scaleEffect(1 + 0.025 * (1 - Ease.smooth(p, 0, 1)),
-                             anchor: UnitPoint(x: origin.x / max(size.width, 1), y: origin.y / max(size.height, 1)))
+            // Nothing sweeps: the whole sea comes up through itself.
+            Color.black
                 .opacity(Ease.smooth(p, 0.05, 0.95))
+                .mask(Ease.topFade)
         }
     }
-
 }
 
 /// The gear in the corner: everything that isn't starting or watching a block.
@@ -241,6 +239,12 @@ private enum Ease {
     static func smooth(_ x: Double, _ a: Double, _ b: Double) -> Double {
         let t = min(max((x - a) / (b - a), 0), 1)
         return t * t * (3 - 2 * t)
+    }
+
+    /// The short fade at the water's top edge, which the sea has always had once it is all the way in.
+    static var topFade: some View {
+        LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.06)],
+                       startPoint: .top, endPoint: .bottom)
     }
 
     /// Clear to black along a smoothstep, top to bottom.

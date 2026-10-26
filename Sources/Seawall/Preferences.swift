@@ -77,7 +77,7 @@ enum HoldAnimation: String, CaseIterable, Identifiable {
     case bloom
     /// The sea fades in from the bottom as a soft fog, with no edge to see; the button fills with a soft sweep.
     case tide
-    /// No movement across the menu: the sea fades in as one tint and settles from a hair larger.
+    /// No movement across the menu: the whole sea fades in as one tint.
     case tint
     /// The first version: a hard-edged rise from the floor, stirring up silt, and a bar across the button.
     case classic
