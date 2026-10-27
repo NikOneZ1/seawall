@@ -1,9 +1,9 @@
 import AppKit
 import Sparkle
 
-/// Automatic updates, through Sparkle. Only release builds carry the feed address and the
-/// key updates are signed with (see scripts/build-app.sh); a build from a clone has neither,
-/// so it never checks and Settings doesn't offer updates.
+/// Automatic updates, through Sparkle. Only release builds carry the feed address (see
+/// scripts/build-app.sh); a build from a clone has none, so it never checks and Settings
+/// doesn't offer updates.
 @MainActor
 final class Updater: NSObject, ObservableObject {
     static let shared = Updater()

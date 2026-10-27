@@ -10,8 +10,12 @@
 #   NOTARY_PROFILE       a notarytool keychain profile, made once with
 #                        `xcrun notarytool store-credentials <name> --apple-id … --team-id …`
 #   SPARKLE_FEED_URL     where appcast.xml will be served
-#   SPARKLE_PUBLIC_KEY   the public key printed by Sparkle's generate_keys
 #   DOWNLOAD_URL_PREFIX  where the zips will be served, e.g. https://example.com/updates/
+#
+# Updates are signed with the private key Sparkle's generate_keys made for the account
+# com.nikitaverba.Seawall, kept in the login keychain. Its public half is in Info.plist.
+# Back it up (generate_keys --account com.nikitaverba.Seawall -x <file>): without it no
+# existing copy of Seawall will ever accept another update.
 #
 # The build number is the number of commits on HEAD, so it only goes up.
 set -euo pipefail
@@ -64,9 +68,8 @@ if [[ -n "${SIGN_IDENTITY:-}" ]]; then
     fi
 fi
 
-# The appcast is signed with the private key generate_keys keeps in the login keychain.
 if [[ -n "${DOWNLOAD_URL_PREFIX:-}" && -n "${SPARKLE_FEED_URL:-}" ]]; then
-    "$SPARKLE_BIN/generate_appcast" --download-url-prefix "$DOWNLOAD_URL_PREFIX" -o "$DIST/appcast.xml" "$UPDATES"
+    "$SPARKLE_BIN/generate_appcast" --account com.nikitaverba.Seawall --download-url-prefix "$DOWNLOAD_URL_PREFIX" -o "$DIST/appcast.xml" "$UPDATES"
 else
     skip "the appcast" "DOWNLOAD_URL_PREFIX or SPARKLE_FEED_URL"
 fi

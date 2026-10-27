@@ -8,10 +8,9 @@
 # a real signing identity keeps the permission, and turns on the hardened runtime
 # that notarization needs.
 #
-# Automatic updates are only switched on when both of these are set (scripts/release.sh
-# sets them); otherwise the app never checks for updates:
-#   SPARKLE_FEED_URL     where the appcast lives, e.g. https://example.com/appcast.xml
-#   SPARKLE_PUBLIC_KEY   the public half of the key from Sparkle's generate_keys
+# Automatic updates are only switched on when SPARKLE_FEED_URL says where the appcast lives
+# (scripts/release.sh sets it); otherwise the app never checks for updates. The public key
+# updates are checked against is in Resources/Info.plist.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -39,9 +38,8 @@ fi
 if [[ -n "${BUILD:-}" ]]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$PLIST"
 fi
-if [[ -n "${SPARKLE_FEED_URL:-}" && -n "${SPARKLE_PUBLIC_KEY:-}" ]]; then
+if [[ -n "${SPARKLE_FEED_URL:-}" ]]; then
     /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $SPARKLE_FEED_URL" "$PLIST"
-    /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $SPARKLE_PUBLIC_KEY" "$PLIST"
     echo "Updates on, from $SPARKLE_FEED_URL"
 fi
 

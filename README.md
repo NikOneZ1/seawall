@@ -53,7 +53,7 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | Apps | Watches app launches and closes the ones on the list. If an app doesn't quit within a second, it gets killed. With Games on, any app filed under Games (or a kind of game, like board games) is closed too, as is anything installed into a Steam or Epic library and launchers like Steam, Battle.net and Riot. |
 | Other browsers | Firefox, Zen, Opera, Vivaldi and the like can't be looked into, so the "Other browsers" option closes them during a block. It only shows up when one of them is installed. |
 | Several blocks | Each block keeps its own end time and attempt count. When two blocks cover the same site, the page shows the later end. |
-| If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
+| If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
 With nothing locked and the menu closed, Seawall only looks at its schedules every couple of seconds and redraws nothing, so it stays near 0% CPU. State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Release builds also fetch the update feed once a day, sending nothing but the app's version. Nothing else leaves your Mac.
@@ -63,13 +63,14 @@ With nothing locked and the menu closed, Seawall only looks at its schedules eve
 Quit Seawall from its menu (the Quit button shows when no block is running), then:
 
 ```bash
-launchctl bootout gui/$(id -u)/com.nikitaverba.FocusLock.watchdog 2>/dev/null
-rm -f ~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist
+launchctl bootout gui/$(id -u)/com.nikitaverba.Seawall.watchdog 2>/dev/null
+rm -f ~/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist
 rm -rf /Applications/Seawall.app "$HOME/Library/Application Support/Seawall"
-tccutil reset AppleEvents com.nikitaverba.FocusLock
+defaults delete com.nikitaverba.Seawall
+tccutil reset AppleEvents com.nikitaverba.Seawall
 ```
 
-The last line forgets the permission to control Safari, Chrome and the other browsers. The names still say FocusLock because that was the app's first name.
+The last line forgets the permission to control Safari, Chrome and the other browsers. Versions before 1.0 were called FocusLock inside; if you ran one, repeat the lines that mention `com.nikitaverba.Seawall` with `com.nikitaverba.FocusLock`.
 
 ## Honest limits
 
