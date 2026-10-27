@@ -1,0 +1,89 @@
+{
+    "version": 2,
+    "lists": [
+        {
+            "id": "686B802D-A0F8-4046-8156-5B6FC0CDEB5D",
+            "name": "Work",
+            "symbol": "briefcase.fill",
+            "color": "sea",
+            "mode": "only",
+            "otherBrowsers": false,
+            "allowed": [],
+            "apps": [],
+            "groups": [
+                {
+                    "isOn": true,
+                    "value": "social"
+                }
+            ],
+            "sites": [
+                {
+                    "isOn": true,
+                    "value": "youtube.com/shorts"
+                },
+                {
+                    "isOn": true,
+                    "value": "twitch.tv"
+                },
+                {
+                    "isOn": true,
+                    "value": "reddit.com"
+                }
+            ]
+        },
+        {
+            "id": "2D6621DC-0CE1-4753-8D8A-814B9868CE3B",
+            "name": "Evening",
+            "symbol": "moon.fill",
+            "color": "violet",
+            "mode": "only",
+            "otherBrowsers": false,
+            "allowed": [],
+            "apps": [],
+            "groups": [
+                {
+                    "isOn": true,
+                    "value": "games"
+                }
+            ],
+            "sites": [
+                {
+                    "isOn": true,
+                    "value": "youtube.com"
+                }
+            ]
+        }
+    ],
+    "next": {
+        "breaks": false,
+        "length": {
+            "minutes": {
+                "_0": 60
+            }
+        },
+        "listID": "686B802D-A0F8-4046-8156-5B6FC0CDEB5D"
+    },
+    "schedules": [
+        {
+            "id": "37D81F61-10C5-4D21-9927-684681D26E24",
+            "listID": "686B802D-A0F8-4046-8156-5B6FC0CDEB5D",
+            "listName": "Work",
+            "days": [
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "start": {
+                "hour": 9,
+                "minute": 0
+            },
+            "end": {
+                "hour": 12,
+                "minute": 0
+            },
+            "enabled": true
+        }
+    ]
+}

@@ -10,6 +10,15 @@ struct Store {
     let directory: URL
 
     init() {
+        #if DEBUG
+        // Screenshots and tests run on demo data, away from the real lists and blocks. Debug
+        // builds only: in a release it would be a way around a running block.
+        if let path = ProcessInfo.processInfo.environment["SEAWALL_DATA_DIR"] {
+            directory = URL(fileURLWithPath: path, isDirectory: true)
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            return
+        }
+        #endif
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         directory = support.appendingPathComponent("Seawall", isDirectory: true)
         // The app was called FocusLock; its blocks and finds move over on the first launch.

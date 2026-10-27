@@ -6,6 +6,7 @@ struct SettingsPane: View {
     @EnvironmentObject private var controller: BlockController
     @ObservedObject private var login = LoginItem.shared
     @ObservedObject private var preferences = Preferences.shared
+    @ObservedObject private var updater = Updater.shared
 
     static let repository = URL(string: "https://github.com/NikOneZ1/seawall")!
 
@@ -74,6 +75,11 @@ struct SettingsPane: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                }
+                if updater.isAvailable {
+                    Toggle("Check for updates automatically", isOn: $updater.checksAutomatically)
+                    Button("Check for Updates…") { updater.checkForUpdates() }
+                        .disabled(!updater.canCheck)
                 }
                 HStack {
                     Link("Source on GitHub", destination: Self.repository)

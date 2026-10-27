@@ -3,7 +3,7 @@ import SeawallCore
 import os
 import UniformTypeIdentifiers
 
-let log = Logger(subsystem: "com.nikitaverba.FocusLock", category: "app")
+let log = Logger(subsystem: BundleID.current, category: "app")
 
 @MainActor
 final class BlockController: ObservableObject {
@@ -19,7 +19,9 @@ final class BlockController: ObservableObject {
     @Published private(set) var finds: [Find]
     /// Blocks that have ended, oldest first, for the Today page.
     @Published private(set) var history: [BlockRecord]
-    /// Ticks once a second for countdowns.
+    /// Ticks once a second for countdowns, but only while a Seawall window or the menu is on
+    /// screen. Publishing it with nothing shown rebuilt the hidden menu every second: a steady
+    /// 3% CPU with nothing locked.
     @Published private(set) var now = Date()
     /// How strict the next block is, when it differs from the default in Settings. Cleared
     /// once that block starts, so a one-off choice never becomes the new default.
@@ -42,6 +44,8 @@ final class BlockController: ObservableObject {
     /// The "End now?" alert on screen for a block whose wait is over.
     private var unlockPrompt: (id: Session.ID, alert: NSAlert)?
     private var timer: Timer?
+    /// Whether a window of ours (the menu, the Seawall window, an alert) is on screen.
+    private var onScreen = false
     /// When each browser's tabs were last read; see `enforce(_:)`.
     private var lastBrowserCheck: [String: Date] = [:]
     /// Reads in a row that failed for a reason other than permission, per browser.
@@ -49,6 +53,10 @@ final class BlockController: ObservableObject {
     /// Browsers whose "Seawall wants to control …" question is on screen right now.
     private var askingAccess: Set<String> = []
     private static let backgroundBrowserInterval: TimeInterval = 5
+    /// How often `tick` runs while blocks run or something is on screen, and while idle: then
+    /// it only starts schedules, which can be a couple of seconds late.
+    private static let activeTick: TimeInterval = 0.5
+    private static let idleTick: TimeInterval = 2
     /// A browser that stops answering can't be watched, so it's closed like one we may not look at.
     private static let failuresBeforeClosing = 4
 
@@ -84,11 +92,12 @@ final class BlockController: ObservableObject {
             self?.countAttempt(app)
         }
 
-        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick() }
+        // Opening the menu or a window shows the current time straight away, and speeds the tick up.
+        NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateOnScreen() }
         }
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        updateOnScreen()
 
         refreshBrowserAccess()
         if !sessions.isEmpty {
@@ -346,9 +355,11 @@ final class BlockController: ObservableObject {
         appGuard.update(bundleIDs: bundleIDs, games: holding.contains(where: \.blocksGames), countRunning: countRunningApps)
         if sessions.isEmpty {
             Watchdog.uninstall()
+            Updater.shared.blocksEnded()
         } else {
             Watchdog.install(appPath: Bundle.main.bundlePath)
         }
+        retime()
     }
 
     private func tick() {
@@ -385,7 +396,7 @@ final class BlockController: ObservableObject {
         promptForUnlock(at: wall)
         runSchedules(at: wall)
 
-        if Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
+        if onScreen, Int(wall.timeIntervalSince1970) != Int(now.timeIntervalSince1970) {
             now = wall
         }
         if let until = blockedUntil, let start = sessions.map(\.startedAt).min() {
@@ -399,6 +410,30 @@ final class BlockController: ObservableObject {
         } else {
             menuBar.update(nil, progress: nil)
         }
+    }
+
+    private func updateOnScreen() {
+        // The status item lives in a window of its own that is always visible.
+        let shown = NSApp.windows.contains {
+            $0.isVisible && $0.occlusionState.contains(.visible) && !$0.className.contains("StatusBar")
+        }
+        if shown, !onScreen { now = Date() }
+        onScreen = shown
+        retime()
+    }
+
+    /// Runs `tick` fast while anything needs watching, slowly otherwise. The tolerance lets
+    /// macOS fold Seawall's wakeups into ones it was doing anyway.
+    private func retime() {
+        let interval = sessions.isEmpty && !onScreen ? Self.idleTick : Self.activeTick
+        if let timer, timer.isValid, timer.timeInterval == interval { return }
+        timer?.invalidate()
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.tick() }
+        }
+        timer.tolerance = interval / 5
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func enforceBrowsers() {

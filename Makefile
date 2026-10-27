@@ -1,4 +1,4 @@
-.PHONY: build run install test icon clean
+.PHONY: build run install test icon energy release clean
 
 build:
 	./scripts/build-app.sh
@@ -26,5 +26,13 @@ test:
 icon:
 	swift scripts/render-icon.swift
 
+# Measures the running Seawall's CPU and wakeups; see the script for limits.
+energy:
+	./scripts/energy-check.sh
+
+# make release VERSION=1.0.0
+release:
+	./scripts/release.sh $(VERSION)
+
 clean:
-	rm -rf .build build
+	rm -rf .build build dist

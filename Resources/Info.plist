@@ -43,5 +43,7 @@
 	<string>Seawall reads tab addresses so it can swap blocked sites for a calm page while a block is running.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

@@ -44,7 +44,7 @@ final class InstalledApps: ObservableObject {
     }
 
     nonisolated private static let excluded: Set<String> = [
-        Bundle.main.bundleIdentifier ?? "com.nikitaverba.FocusLock", "com.apple.finder", "com.apple.systempreferences",
+        BundleID.current, "com.apple.finder", "com.apple.systempreferences",
     ]
 
     nonisolated private static func scan() -> [ListApp] {

@@ -20,6 +20,10 @@ struct SeawallApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let controller = BlockController()
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        BundleID.moveFromLegacy()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
             .filter { $0 != NSRunningApplication.current }
@@ -28,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         controller.launch()
+        Updater.shared.isBlocking = { [controller] in !controller.sessions.isEmpty }
+        Updater.shared.start()
 
         if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
             UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)

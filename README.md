@@ -37,7 +37,9 @@ cd seawall
 make install   # builds and copies to /Applications
 ```
 
-Other commands: `make run` runs from `build/`, `make test` runs the tests.
+Other commands: `make run` runs from `build/`, `make test` runs the tests, `make energy` measures what the running app costs, and `make release VERSION=1.0.0` makes a disk image and an update in `dist/` (see `scripts/release.sh` for the signing and update settings it reads).
+
+A build from source doesn't update itself. Release builds check for updates once a day (Settings → About), and an update never restarts Seawall in the middle of a block: it waits until the block ends.
 
 The first launch walks you through it, including macOS asking "Seawall wants to control Safari" (and Chrome, if you have it). Allow it. Without that access Seawall can't see tabs, so during a block that browser just gets closed.
 
@@ -54,7 +56,7 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
-State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there; nothing else leaves your Mac.
+With nothing locked and the menu closed, Seawall only looks at its schedules every couple of seconds and redraws nothing, so it stays near 0% CPU. State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Release builds also fetch the update feed once a day, sending nothing but the app's version. Nothing else leaves your Mac.
 
 ## Uninstall
 
@@ -78,6 +80,7 @@ Seawall protects you from an impulse, not from a determined person with a termin
 - [x] Schedules (weekdays 10:00–18:00)
 - [x] Daily stats (Today)
 - [x] Icon
+- [x] Automatic updates (release builds)
 - [ ] A signed release
 
 ## License

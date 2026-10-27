@@ -4,12 +4,13 @@ import Foundation
 /// Killing Seawall in Activity Monitor buys you at most 10 seconds; once relaunched it
 /// picks the session up from disk and closes whatever you opened in the meantime.
 enum Watchdog {
-    static let label = "com.nikitaverba.FocusLock.watchdog"
+    static var label: String { "\(BundleID.current).watchdog" }
 
-    private static var plistURL: URL {
+    private static func plistURL(_ label: String) -> URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/LaunchAgents/\(label).plist")
     }
+    private static var plistURL: URL { plistURL(label) }
 
     private static var domain: String { "gui/\(getuid())" }
     private static var service: String { "\(domain)/\(label)" }
@@ -23,7 +24,7 @@ enum Watchdog {
             "RunAtLoad": true,
             "StartInterval": 10,
             "ProcessType": "Background",
-            "AssociatedBundleIdentifiers": [Bundle.main.bundleIdentifier ?? "com.nikitaverba.FocusLock"],
+            "AssociatedBundleIdentifiers": [BundleID.current],
         ]
         guard let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) else { return }
 
@@ -45,6 +46,14 @@ enum Watchdog {
     static func uninstall() {
         launchctl("bootout", service)
         try? FileManager.default.removeItem(at: plistURL)
+    }
+
+    /// The watchdog of a build with the old bundle ID. A block that was running carries on
+    /// under the new label, which `install` sets up on this launch.
+    static func uninstallLegacy() {
+        let label = "\(BundleID.legacy).watchdog"
+        launchctl("bootout", "\(domain)/\(label)")
+        try? FileManager.default.removeItem(at: plistURL(label))
     }
 
     @discardableResult
