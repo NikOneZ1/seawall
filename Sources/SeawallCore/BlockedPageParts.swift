@@ -46,10 +46,10 @@ const SW=(()=>{
   const raw=q.get('url')||'';
   const host=raw.replace(/^https?:\/\/(www\.)?/,'').split(/[/?#]/)[0]||'this site';
   const until=(Number(q.get('until'))||0)*1000;
-  const tries=Math.max(1,Number(q.get('n'))||1);
+  // Tries in this block; 0 when `n` is missing or not a positive whole number, and then nothing is shown.
+  const tries=(s=>/^[0-9]+$/.test(s)&&Number.isSafeInteger(+s)&&+s>0?+s:0)((q.get('n')||'').trim());
   const pad=n=>String(n).padStart(2,'0');
-  const ORD=['','First','Second','Third','Fourth','Fifth'];
-  const ord=n=>ORD[n]||n+'th';
+  const ord=n=>{const t=n%100,o=n%10;return n+(t>10&&t<14?'th':o===1?'st':o===2?'nd':o===3?'rd':'th')};
   const left=()=>until?Math.max(0,Math.ceil((until-Date.now())/1000)):0;
   const hms=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return h?`${h}:${pad(m)}:${pad(x)}`:`${m}:${pad(x)}`};
   const short=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h}h ${pad(m)}m`:`${m}m`};
@@ -67,7 +67,7 @@ const SW=(()=>{
     document.title=over?'Block is over':'Blocked';
     $('pill').textContent=over?'Block is over':until?`${host} is closed until ${endLabel()}`:`${host} is closed`;
     const parts=[];
-    if(!over){if(until)parts.push(`<span>${short(left())} left</span>`);parts.push(`<span>${ord(tries)} try in this block</span>`);if(current&&stats[current])parts.push(`<span>${stats[current]}</span>`)}
+    if(!over){if(until)parts.push(`<span>${short(left())} left</span>`);if(tries)parts.push(`<span>${ord(tries)} try this block</span>`);if(current&&stats[current])parts.push(`<span>${stats[current]}</span>`)}
     $('foot').innerHTML=parts.join('<i></i>');
     $('over').hidden=!over;
     document.querySelectorAll('.c').forEach(c=>{if(c.id==='over')return;if(over)c.hidden=true;else c.hidden=c.dataset.name!==current});
@@ -209,7 +209,7 @@ const SW=(()=>{
   const WORK=5;
   let wins=st.get(KEY,0),pick=-1;
   const chips=$('w-chips'),stat=()=>SW.setStat('why',wins?`Wins today: ${wins}`:'');
-  $('w-eyebrow').textContent=SW.host+' · '+SW.ord(SW.tries).toLowerCase()+' try';
+  $('w-eyebrow').textContent=SW.tries?SW.host+' · '+SW.ord(SW.tries)+' try':SW.host;
   WHY.forEach((w,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=w[0];b.setAttribute('aria-pressed','false');b.onclick=()=>choose(i);chips.appendChild(b)});
   function choose(i){
     pick=i;[...chips.children].forEach((c,j)=>c.setAttribute('aria-pressed',j===i));
