@@ -58,16 +58,19 @@ State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched 
 
 ## Uninstall
 
-Quit Seawall from its menu (the Quit button shows when no block is running), then:
+In Settings, press **Uninstall Seawall…**. It removes your lists and history, settings, site icons, the watchdog LaunchAgent, Open at login and the permission to read browser tabs, can move the app to the Trash, and quits. Like Quit, it only works when no block is running (or about to start on schedule); it's never a faster way out than leaving early.
+
+By hand: quit Seawall from its menu (Quit is on when no block is running), then:
 
 ```bash
 launchctl bootout gui/$(id -u)/com.nikitaverba.FocusLock.watchdog 2>/dev/null
 rm -f ~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist
 rm -rf /Applications/Seawall.app "$HOME/Library/Application Support/Seawall"
+defaults delete com.nikitaverba.FocusLock 2>/dev/null
 tccutil reset AppleEvents com.nikitaverba.FocusLock
 ```
 
-The last line forgets the permission to control Safari, Chrome and the other browsers. The names still say FocusLock because that was the app's first name.
+The last line forgets the permission to control Safari, Chrome and the other browsers. The names still say FocusLock because that was the app's first name. The full list of what Seawall writes, and how to check it's all gone, is in [docs/UNINSTALL.md](docs/UNINSTALL.md).
 
 ## Honest limits
 

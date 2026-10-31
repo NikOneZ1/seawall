@@ -81,6 +81,21 @@ struct SettingsPane: View {
                     Link("Report a Problem", destination: Self.repository.appendingPathComponent("issues"))
                 }
             }
+
+            // Like Quit, only while nothing is blocked. The dialog checks again, and so does the
+            // uninstall itself, since a schedule can start in between.
+            Section("Uninstall") {
+                let refusal = controller.uninstallRefusal(at: controller.now)
+                HStack(alignment: .firstTextBaseline, spacing: Space.m) {
+                    Text(refusal?.message(relativeTo: controller.now)
+                        ?? "Removes Seawall's lists, history, settings and helpers from this Mac, then quits.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Uninstall Seawall…") { Uninstaller.begin(controller: controller) }
+                        .disabled(refusal != nil)
+                }
+            }
         }
         .formStyle(.grouped)
         .navigationTitle("Settings")

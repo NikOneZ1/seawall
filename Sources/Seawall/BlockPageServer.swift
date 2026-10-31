@@ -22,6 +22,14 @@ final class BlockPageServer {
         listen(on: Self.preferredPort)
     }
 
+    /// Closes the port. Only on uninstall: blocked tabs need the page for as long as the app runs.
+    func stop() {
+        listener?.stateUpdateHandler = nil
+        listener?.cancel()
+        listener = nil
+        port = nil
+    }
+
     func pageURL(until: Date, blocked: URL, attempts: Int) -> String {
         guard let port else { return "about:blank" }
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
