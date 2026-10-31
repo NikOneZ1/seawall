@@ -10,7 +10,7 @@ Open Settings (the gear in the menu, then Settings…) and press **Uninstall Sea
 - Open at login
 - Seawall's permission to read browser tabs (Automation)
 
-Tick "Also move Seawall to the Trash" to remove the app as well. Then Seawall quits. If something couldn't be removed (for example, the app sits somewhere it can't move itself from), it tells you what's left to do.
+"Also move Seawall to the Trash" is ticked, so the app goes too; untick it to keep the app. Then Seawall quits. If something couldn't be removed (for example, the app sits somewhere it can't move itself from), it tells you what's left to do.
 
 ## Not during a block
 

@@ -26,7 +26,7 @@ enum Uninstaller {
             alert.addButton(withTitle: "Cancel")
             alert.addButton(withTitle: "Uninstall").hasDestructiveAction = true
             let trash = NSButton(checkboxWithTitle: "Also move Seawall to the Trash", target: nil, action: nil)
-            trash.state = .off
+            trash.state = .on  // On by default: most people want the app gone too.
             alert.accessoryView = trash
             guard alert.runModal() == .alertSecondButtonReturn else { return }
 
