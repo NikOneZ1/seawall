@@ -54,7 +54,11 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
-State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there; nothing else leaves your Mac.
+State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Once a day Seawall asks `seawall.work` whether there's a newer version, sending only its version number, plus the IP address any web request carries (switch it off in Settings, under About). Nothing else leaves your Mac.
+
+## Updates
+
+Seawall updates itself with [Sparkle](https://sparkle-project.org): "Check for Updates…" is in the gear menu, and it checks once a day on its own. A new version is offered, not installed behind your back, and never quits to install while a block is running; it waits until the block ends. How releases are signed and published is in [docs/UPDATES.md](docs/UPDATES.md). Builds made with `make build` run with updates off until a release key is set up.
 
 ## Uninstall
 

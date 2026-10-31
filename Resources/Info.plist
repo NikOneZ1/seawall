@@ -43,5 +43,24 @@
 	<string>Seawall reads tab addresses so it can swap blocked sites for a calm page while a block is running.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<!-- Updates, through Sparkle. See docs/UPDATES.md. -->
+	<key>SUFeedURL</key>
+	<string>https://seawall.work/appcast.xml</string>
+	<!-- Placeholder. Before the first release, replace it with the public key that Sparkle's
+	     generate_keys prints (44 characters of base64). The private key stays in the login
+	     keychain and never goes in this repo. While this placeholder is here, the app runs
+	     with updates off, and REQUIRE_SPARKLE_KEY=1 scripts/build-app.sh refuses to build. -->
+	<key>SUPublicEDKey</key>
+	<string>REPLACE_WITH_PUBLIC_KEY_FROM_GENERATE_KEYS</string>
+	<!-- Checks once a day without asking first. The request carries the app version and nothing else. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<!-- Updates are offered, not installed silently; the update window lets people opt in. -->
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
 </dict>
 </plist>

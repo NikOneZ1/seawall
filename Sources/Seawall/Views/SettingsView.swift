@@ -6,6 +6,7 @@ struct SettingsPane: View {
     @EnvironmentObject private var controller: BlockController
     @ObservedObject private var login = LoginItem.shared
     @ObservedObject private var preferences = Preferences.shared
+    @ObservedObject private var updates = Updates.shared
 
     static let repository = URL(string: "https://github.com/NikOneZ1/seawall")!
 
@@ -74,6 +75,23 @@ struct SettingsPane: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                }
+                if updates.isAvailable {
+                    HStack {
+                        Toggle("Check for updates automatically", isOn: $updates.checksAutomatically)
+                        Spacer()
+                        Button("Check Now") { updates.checkNow() }
+                            .disabled(!updates.canCheck)
+                    }
+                    if updates.waitingForBlock {
+                        Text("An update is ready. It installs once no block is running.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text("Updates are off in this build.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
                 HStack {
                     Link("Source on GitHub", destination: Self.repository)
