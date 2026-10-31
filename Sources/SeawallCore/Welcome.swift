@@ -1,15 +1,37 @@
 import Foundation
 
 /// The first launch, as a few steps: pick what pulls you in, let Seawall see browser tabs,
-/// choose how hard leaving early is, then start the first block.
+/// choose how hard leaving early is, activate Seawall, then hold to start the first block.
 public enum Welcome {
     public enum Step: Int, CaseIterable, Sendable {
-        case pick, browsers, leaving, start
+        case pick, browsers, leaving, license, start
 
         public var next: Step? { Step(rawValue: rawValue + 1) }
         public var previous: Step? { Step(rawValue: rawValue - 1) }
         public var isLast: Bool { next == nil }
+
+        /// The step after this one. The license step only shows when the build has licensing.
+        public func next(showsLicense: Bool) -> Step? {
+            let step = next
+            return step == .license && !showsLicense ? step?.next : step
+        }
+
+        public func previous(showsLicense: Bool) -> Step? {
+            let step = previous
+            return step == .license && !showsLicense ? step?.previous : step
+        }
+
+        /// The steps on screen, for the dots in the footer.
+        public static func shown(showsLicense: Bool) -> [Step] {
+            allCases.filter { $0 != .license || showsLicense }
+        }
     }
+
+    /// The first block the welcome starts: an hour, Flexible (leave after a 10-minute wait), so
+    /// trying Seawall for the first time never traps anyone. Started with a press and hold, like
+    /// the menu, never a single click.
+    public static let firstBlockLength: BlockLength = .minutes(60)
+    public static let firstBlockStrictness: EarlyExit = .wait10
 
     /// Shown once, on its own, and never over a block restored from disk: a block running
     /// means Seawall has been set up already, and the watchdog's relaunches must stay invisible.
