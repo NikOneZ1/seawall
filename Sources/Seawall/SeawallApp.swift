@@ -31,9 +31,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        _ = Diagnostics.launchedAt
+        let info = Diagnostics.info
+        log.notice("Seawall \(info.version, privacy: .public) (\(info.build, privacy: .public)) started")
+        CrashReporter.shared.start(controller: controller)
         controller.launch()
         Updater.shared.isBlocking = { [controller] in !controller.sessions.isEmpty }
         Updater.shared.start()
+        CrashReporter.crashForTestingIfAsked()
 
         if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
             UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)

@@ -57,6 +57,7 @@ struct MoreMenu: View {
             Divider()
             Button("Settings…") { Panels.showMain(.settings, controller: controller) }
                 .keyboardShortcut(",", modifiers: .command)
+            Button("Send Feedback…") { Diagnostics.sendFeedback(controller: controller) }
             Divider()
             if locked {
                 Text("Quit is off while a block runs")
