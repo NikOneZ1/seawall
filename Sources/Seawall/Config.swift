@@ -14,9 +14,9 @@ struct Config: Codable, Equatable {
     /// What the menu has picked for the next block.
     var next: NextBlock
 
+    /// A fresh install: one list holding the welcome's suggested sites, so they show up ticked there.
     static var initial: Config {
-        let list = BlockList(name: "Distractions", symbol: "water.waves", color: .sea,
-                             sites: ["youtube.com/shorts", "twitch.tv", "tiktok.com"].map { Toggled($0) })
+        let list = BlockList(name: "Distractions", symbol: "water.waves", color: .sea, sites: Starter.suggestedSites)
         return Config(lists: [list], next: NextBlock(listID: list.id, length: .minutes(60)))
     }
 

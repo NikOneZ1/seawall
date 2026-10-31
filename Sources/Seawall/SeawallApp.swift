@@ -29,13 +29,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         controller.launch()
 
-        if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
-            UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)
+        // After launch, which restores blocks from disk: a watchdog relaunch mid-block must
+        // stay invisible. Marked seen either way, so it never turns up once that block ends.
+        let preferences = Preferences.shared
+        if Welcome.showsAtLaunch(seen: preferences.welcomeSeen, blocksRunning: !controller.sessions.isEmpty) {
             Panels.showWelcome(controller: controller)
         }
+        preferences.welcomeSeen = true
     }
-
-    private static let welcomeShownKey = "welcomeShown"
 
     /// `seawall://lock?list=Work&until=18:00`, from Shortcuts, Raycast or a Focus automation.
     func application(_ application: NSApplication, open urls: [URL]) {

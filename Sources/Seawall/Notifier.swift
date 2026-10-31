@@ -20,6 +20,13 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         Task { allowed = await center.notificationSettings().authorizationStatus == .authorized }
     }
 
+    /// Whether macOS still has to ask about notifications, which it does when the next block
+    /// starts. The welcome says so beforehand.
+    func willAsk() async -> Bool {
+        guard Preferences.shared.notifications else { return false }
+        return await center.notificationSettings().authorizationStatus == .notDetermined
+    }
+
     /// Asked the first time a block starts, when the reason is obvious.
     private func permitted() async -> Bool {
         guard Preferences.shared.notifications else { return false }

@@ -37,6 +37,13 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(blockedPage.rawValue, forKey: "blockedPage") }
     }
 
+    /// The welcome has come up on its own once. Settings can still show it again. The key is the
+    /// one earlier versions used, so nobody who has seen it gets it twice.
+    var welcomeSeen: Bool {
+        get { defaults.bool(forKey: "welcomeShown") }
+        set { defaults.set(newValue, forKey: "welcomeShown") }
+    }
+
     private init() {
         defaults.register(defaults: ["showsTimeLeft": false, "shortcut": true, "notifications": true, "sounds": true])
         earlyExit = EarlyExit(rawValue: defaults.string(forKey: "earlyExit") ?? "") ?? .wait10
