@@ -1,21 +1,20 @@
 import Foundation
 
 // The license as seawall.work/license describes it, and what the app makes of it.
-// Kept apart from blocks entirely: nothing here can start, end or change a block.
+// Seawall is paid only: starting a new block needs a license (see `LicenseGate`). A block that
+// is already running never looks at the license, so nothing here can end, unlock or shorten one.
 
 // MARK: - Wire format
 
-/// What the server says a license is. "license" today; a Creem trial can later come back as "trial".
+/// What the server says a license is. "license" is the only kind Seawall sells.
 public enum LicenseKind: Equatable, Sendable {
     case license
-    case trial
     /// A kind this version doesn't know. Treated conservatively: never a reason to lock anyone out.
     case other(String)
 
     public init(_ raw: String?) {
         switch raw {
         case "license", nil: self = .license
-        case "trial": self = .trial
         case let raw?: self = .other(raw)
         }
     }
@@ -23,7 +22,6 @@ public enum LicenseKind: Equatable, Sendable {
     public var rawValue: String {
         switch self {
         case .license: "license"
-        case .trial: "trial"
         case .other(let raw): raw
         }
     }
@@ -252,7 +250,7 @@ public struct LicenseInfo: Equatable, Sendable {
 
     /// "Licensed on this Mac · 1 of 3 Macs".
     public var summary: String {
-        let head = kind == .trial ? "Trial on this Mac" : "Licensed on this Mac"
+        let head = "Licensed on this Mac"
         guard let used = activations, let limit = activationLimit, limit > 0 else { return head }
         return "\(head) · \(used) of \(Format.count(limit, "Mac", "Macs"))"
     }
@@ -262,8 +260,6 @@ public struct LicenseInfo: Equatable, Sendable {
 public enum LicenseState: Equatable, Sendable {
     case unlicensed
     case licensed(LicenseInfo)
-    /// Reserved for a Creem trial (`kind: "trial"`). Nothing offers a trial yet.
-    case trial(LicenseInfo)
     /// Still licensed. The server said no once, and keeps the app working at least until `until`;
     /// only another "no" after that date ends it.
     case grace(LicenseInfo, problem: LicenseProblem, until: Date)
@@ -279,8 +275,6 @@ public enum LicenseState: Equatable, Sendable {
         if let problem = record.problem {
             let since = max(record.problemSince ?? record.lastValidatedAt, record.lastValidatedAt)
             self = .grace(info, problem: problem, until: since + LicensePolicy.gracePeriod)
-        } else if info.kind == .trial {
-            self = .trial(info)
         } else {
             self = .licensed(info)
         }
@@ -294,8 +288,21 @@ public enum LicenseState: Equatable, Sendable {
     public var info: LicenseInfo? {
         switch self {
         case .unlicensed: nil
-        case .licensed(let info), .trial(let info), .grace(let info, _, _): info
+        case .licensed(let info), .grace(let info, _, _): info
         }
+    }
+}
+
+/// Whether a new block may start. Seawall is paid only: opening the app, setting up lists and
+/// schedules works without a key, but starting a block (from the menu, the welcome, a schedule or a
+/// `seawall://lock` link) needs a license. Grace still counts as licensed, so a refund or a revoked
+/// key only stops new blocks once its 30 days are over and the server still says no.
+///
+/// There is deliberately no API here that takes running blocks: a block that has started is
+/// never ended, unlocked or shortened because of the license.
+public enum LicenseGate {
+    public static func mayStartBlock(_ state: LicenseState) -> Bool {
+        state.isLicensed
     }
 }
 

@@ -64,6 +64,26 @@ enum Panels {
         bringForward(window)
     }
 
+    /// "Activate Seawall": a key field and a Buy link, shown when a block couldn't start without a license.
+    static func showActivate(reason: String?) {
+        MenuShortcut.closeMenu()
+        let view = ActivateView(reason: reason)
+        if let window = windows["activate"], let host = window.contentViewController as? NSHostingController<ActivateView> {
+            host.rootView = view
+            bringForward(window)
+            return
+        }
+        let host = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: host)
+        window.title = "Activate Seawall"
+        window.styleMask = [.titled, .closable]
+        window.isReleasedWhenClosed = false
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        window.center()
+        windows["activate"] = window
+        bringForward(window)
+    }
+
     static func close(_ id: String) {
         windows[id]?.close()
     }

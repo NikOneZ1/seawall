@@ -2,7 +2,7 @@ import SeawallCore
 import SwiftUI
 
 /// Settings → License: a key field while unlicensed, the status and Deactivate once licensed.
-/// Only ever a gentle line; nothing here touches blocks.
+/// Nothing here touches a running block.
 struct LicenseSection: View {
     @ObservedObject private var license = LicenseModel.shared
     @State private var key = ""
@@ -13,11 +13,11 @@ struct LicenseSection: View {
             switch license.state {
             case .unlicensed:
                 unlicensed
-            case .licensed(let info), .trial(let info):
+            case .licensed(let info):
                 licensed(info)
             case .grace(let info, let problem, let until):
                 licensed(info)
-                Text("seawall.work says \(problem.wording). Seawall keeps working at least until \(until.formatted(date: .long, time: .omitted)). If that's a mistake, email \(LicenseModel.supportEmail).")
+                Text("seawall.work says \(problem.wording). New blocks keep starting at least until \(until.formatted(date: .long, time: .omitted)), and running blocks are never affected. If that's a mistake, email \(LicenseModel.supportEmail).")
                     .font(.subheadline)
                     .foregroundStyle(.orange)
             }
@@ -33,7 +33,7 @@ struct LicenseSection: View {
     }
 
     @ViewBuilder private var unlicensed: some View {
-        Text("Seawall isn't activated on this Mac. Everything works the same either way; a license keeps it going.")
+        Text("Seawall isn't activated on this Mac yet. Starting a block needs a license key: \(LicenseModel.price) once, for up to 3 Macs.")
             .font(.subheadline)
             .foregroundStyle(.secondary)
         HStack(spacing: Space.s) {
@@ -49,7 +49,7 @@ struct LicenseSection: View {
                 .disabled(license.isWorking || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         HStack {
-            Link("Buy Seawall", destination: LicenseModel.buyURL)
+            Link("Buy Seawall for \(LicenseModel.price)", destination: LicenseModel.buyURL)
             Spacer()
             Text("Works on up to 3 Macs.")
                 .font(.subheadline)
