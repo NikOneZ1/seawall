@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.launch()
         Updater.shared.isBlocking = { [controller] in !controller.sessions.isEmpty }
         Updater.shared.start()
+        LicenseModel.shared.start() // Separate from blocks: only checks the license now and then.
 
         if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
             UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)
