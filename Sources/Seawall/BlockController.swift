@@ -138,6 +138,11 @@ final class BlockController: ObservableObject {
 
     func startBlock() {
         guard let list = selectedList else { return }
+        // Paid only: a new block needs a license. Running blocks never get here.
+        guard LicenseModel.shared.mayStartBlock else {
+            LicenseModel.shared.askToActivate()
+            return
+        }
         let start = Date()
         let rounds = plannedRounds
         let end = rounds.map { start + $0.total } ?? config.next.length.end(from: start)
@@ -207,6 +212,11 @@ final class BlockController: ObservableObject {
 
     /// A block of what `list` holds, started outside the menu: by a schedule or a link.
     private func start(_ list: BlockList, at now: Date, until end: Date) -> Session? {
+        guard LicenseModel.shared.mayStartBlock else {
+            // A schedule marks its stretch as run before calling this, so this asks once, not every tick.
+            LicenseModel.shared.askToActivate(because: "\(list.name) didn't start: starting a block needs a license key.")
+            return nil
+        }
         let session = Session(list, startedAt: now, endsAt: end, earlyExit: Preferences.shared.earlyExit,
                               otherBrowsersInstalled: otherBrowsersInstalled)
         // Two blocks can't share a start time: it's their ID.
