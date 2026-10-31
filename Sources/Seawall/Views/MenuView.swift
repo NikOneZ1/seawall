@@ -46,6 +46,7 @@ struct MenuView: View {
 /// The gear in the corner: everything that isn't starting or watching a block.
 struct MoreMenu: View {
     @EnvironmentObject private var controller: BlockController
+    @ObservedObject private var updates = Updates.shared
 
     var body: some View {
         let locked = !controller.sessions.isEmpty
@@ -57,6 +58,13 @@ struct MoreMenu: View {
             Divider()
             Button("Settings…") { Panels.showMain(.settings, controller: controller) }
                 .keyboardShortcut(",", modifiers: .command)
+            if updates.isAvailable {
+                Button("Check for Updates…") { updates.checkNow() }
+                    .disabled(!updates.canCheck)
+                if updates.waitingForBlock {
+                    Text("An update installs when the block ends")
+                }
+            }
             Divider()
             if locked {
                 Text("Quit is off while a block runs")
