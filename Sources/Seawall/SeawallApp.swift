@@ -44,6 +44,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Uninstalling: once more, for anything written since the first pass (a site icon that was
+    /// still downloading, a window frame).
+    func applicationWillTerminate(_ notification: Notification) {
+        if controller.uninstalling { Uninstaller.removeData() }
+    }
+
     /// The watchdog `open`s the app every few seconds during a block; that must stay invisible.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         false

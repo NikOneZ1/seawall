@@ -42,6 +42,8 @@ final class BlockController: ObservableObject {
     /// The "End now?" alert on screen for a block whose wait is over.
     private var unlockPrompt: (id: Session.ID, alert: NSAlert)?
     private var timer: Timer?
+    /// Set once uninstalling is under way: nothing may start a block (and so the watchdog) again.
+    private(set) var uninstalling = false
     /// When each browser's tabs were last read; see `enforce(_:)`.
     private var lastBrowserCheck: [String: Date] = [:]
     /// Reads in a row that failed for a reason other than permission, per browser.
@@ -137,7 +139,7 @@ final class BlockController: ObservableObject {
     }
 
     func startBlock() {
-        guard let list = selectedList else { return }
+        guard !uninstalling, let list = selectedList else { return }
         let start = Date()
         let rounds = plannedRounds
         let end = rounds.map { start + $0.total } ?? config.next.length.end(from: start)
@@ -207,6 +209,7 @@ final class BlockController: ObservableObject {
 
     /// A block of what `list` holds, started outside the menu: by a schedule or a link.
     private func start(_ list: BlockList, at now: Date, until end: Date) -> Session? {
+        guard !uninstalling else { return nil }
         let session = Session(list, startedAt: now, endsAt: end, earlyExit: Preferences.shared.earlyExit,
                               otherBrowsersInstalled: otherBrowsersInstalled)
         // Two blocks can't share a start time: it's their ID.
@@ -328,11 +331,45 @@ final class BlockController: ObservableObject {
         }
     }
 
+    // MARK: - Uninstalling
+
+    /// Why Seawall can't be uninstalled right now, if it can't. Cheap, for the Settings button.
+    func uninstallRefusal(at now: Date) -> UninstallRefusal? {
+        Uninstall.refusal(sessions: sessions, schedules: config.schedules, now: now) { self.list(for: $0) != nil }
+    }
+
+    /// Stops everything a block uses, so no tab is redirected and no app closed from here on,
+    /// and takes the watchdog down. Checks once more first, blocks on disk included, in the same
+    /// turn of the main loop as the teardown: a schedule could have started while the dialog
+    /// was up, and no tick can run in between. Refused, everything keeps running as before.
+    func stopForUninstall() -> UninstallRefusal? {
+        // One tick first: it absorbs a clock moved forward since the last one, tidies away
+        // blocks that are over, and starts a schedule whose time has come.
+        tick()
+        let now = Date()
+        let onDisk = store.load([Session].self, from: .sessions) ?? []
+        if let refusal = Uninstall.refusal(sessions: sessions + onDisk, schedules: config.schedules, now: now,
+                                           canStart: { self.list(for: $0) != nil }) {
+            return refusal
+        }
+        uninstalling = true
+        timer?.invalidate()
+        timer = nil
+        filters = [:]
+        holdingIDs = []
+        appGuard.stop()
+        pageServer.stop()
+        Watchdog.uninstall()
+        return nil
+    }
+
     // MARK: - Enforcement
 
     /// Points the guards at everything the running blocks cover.
     /// `countRunningApps`: see `AppGuard.update`.
     private func applyBlocks(countRunningApps: Bool) {
+        // Once uninstalling, nothing is enforced and the watchdog stays down.
+        guard !uninstalling else { return }
         // A new block checks the browsers right away, wherever they are.
         lastBrowserCheck = [:]
         filters = [:]
