@@ -46,6 +46,8 @@ Every update is signed with an EdDSA (Ed25519) key. The app has the public half;
 
    The public key is meant to be public; committing it is fine.
 
+   Done on 2026-10-31: the key pair was made on Nikita's MacBook Air and the public key is in `Resources/Info.plist`. Step 3 is still to do.
+
 3. Back up the private key somewhere safe, outside this repo (a password manager, an encrypted backup):
 
    ```bash
