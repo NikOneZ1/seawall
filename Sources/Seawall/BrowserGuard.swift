@@ -103,7 +103,9 @@ final class BrowserGuard {
         var errorInfo: NSDictionary?
         NSAppleScript(source: source)?.executeAndReturnError(&errorInfo)
         if let errorInfo {
-            log.error("\(self.name, privacy: .public) redirect failed: \(errorInfo, privacy: .public)")
+            // Only the error number: the message can quote the script, and with it the blocked address.
+            let code = errorInfo[NSAppleScript.errorNumber] as? Int ?? 0
+            log.error("\(self.name, privacy: .public) redirect failed: \(code)")
             return false
         }
         return true

@@ -80,7 +80,8 @@ final class BlockController: ObservableObject {
         pageServer.choice = { Preferences.shared.blockedPage }
         pageServer.start()
         appGuard.onAttempt = { [weak self] app in
-            log.info("Closed \(app.bundleIdentifier ?? "?", privacy: .public)")
+            // Which app is block list content: private, so it never shows up in a feedback email.
+            log.info("Closed \(app.bundleIdentifier ?? "?", privacy: .private)")
             self?.countAttempt(app)
         }
 
@@ -193,7 +194,8 @@ final class BlockController: ObservableObject {
         let list: BlockList
         if let name = link.list {
             guard let named = config.lists.first(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) else {
-                log.error("seawall://lock asked for a list called \(name, privacy: .public), and there isn't one")
+                // The list's name is the user's own words; it stays out of the log.
+                log.error("seawall://lock asked for a list that doesn't exist")
                 return
             }
             list = named

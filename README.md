@@ -54,7 +54,14 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
-State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there; nothing else leaves your Mac.
+State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Apart from those icons, Seawall itself never sends anything anywhere. The only other way anything leaves your Mac is an email you choose to send yourself, below.
+
+## Feedback and crash reports
+
+- **Send Feedback…** (in the gear menu, and in Settings) opens an email to hello@seawall.work in your mail app. It has room for your message at the top, then the Seawall and macOS versions, the Mac model, and Seawall's own log from the last 30 minutes. Before it goes in, the log is cleaned of web addresses, domains, IP and email addresses, file paths, your user name and your Mac's name, and everything in your lists (list names, sites, apps). Nothing is sent until you press Send in your mail app, and you can read and edit all of it first. If the log is too long for an email link, it's copied to the clipboard and saved in `Diagnostics/` instead, shown in Finder, for you to paste or attach. The log only covers Seawall's current run: macOS doesn't let an app read its earlier runs without special permission.
+- **Offer to send crash reports** in Settings is off until you turn it on. With it on, a crash saves a short report in `Crashes/`: the versions, how Seawall stopped, and where in its code. It never holds addresses, sites or list contents. On the next launch Seawall asks once whether to email it, shows the file in Finder to attach, and lets you delete it instead. It keeps at most 5 reports for up to 30 days. With the setting off, Seawall doesn't watch for crashes at all, and turning it off deletes saved reports.
+
+To test crash reports, quit Seawall and run `open --env SEAWALL_TEST_CRASH=trap -a Seawall`. It crashes on purpose 10 seconds later (`segv` and `exception` are the other kinds). Only that one launch is affected: the watchdog relaunches with a plain `open`.
 
 ## Uninstall
 

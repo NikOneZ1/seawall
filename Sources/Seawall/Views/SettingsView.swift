@@ -6,6 +6,7 @@ struct SettingsPane: View {
     @EnvironmentObject private var controller: BlockController
     @ObservedObject private var login = LoginItem.shared
     @ObservedObject private var preferences = Preferences.shared
+    @ObservedObject private var crashes = CrashReporter.shared
 
     static let repository = URL(string: "https://github.com/NikOneZ1/seawall")!
 
@@ -60,6 +61,27 @@ struct SettingsPane: View {
                 Button("Show the Welcome Again") { Panels.showWelcome(controller: controller) }
             }
 
+            Section("Feedback") {
+                HStack {
+                    Text("Opens an email to \(FeedbackMail.address) with the versions and a recent log, cleaned of sites and lists.")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Send Feedback…") { Diagnostics.sendFeedback(controller: controller) }
+                }
+                Toggle("Offer to send crash reports", isOn: $preferences.crashReports)
+                Text("After a crash, Seawall asks before emailing a short report: versions and where its code stopped, never your sites or lists.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                if preferences.crashReports, !crashes.reports.isEmpty {
+                    HStack {
+                        Text(Format.count(crashes.reports.count, "saved report", "saved reports"))
+                        Spacer()
+                        Button("Show in Finder") { crashes.showInFinder() }
+                        Button("Delete") { crashes.deleteAll() }
+                    }
+                }
+            }
+
             Section("About") {
                 HStack(spacing: Space.m) {
                     Image(nsImage: NSApp.applicationIconImage)
@@ -84,7 +106,10 @@ struct SettingsPane: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Settings")
-        .onAppear { login.refresh() }
+        .onAppear {
+            login.refresh()
+            crashes.refresh()
+        }
     }
 
     /// "0.1.0 (1)".
