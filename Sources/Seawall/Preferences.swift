@@ -32,18 +32,28 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(sounds, forKey: "sounds") }
     }
 
+    /// After a crash, offer to email a short report on the next launch. Off until someone
+    /// turns it on: with it off, Seawall doesn't even watch for crashes.
+    @Published var crashReports: Bool {
+        didSet {
+            defaults.set(crashReports, forKey: "crashReports")
+            CrashReporter.shared.setEnabled(crashReports)
+        }
+    }
+
     /// Which page a blocked tab lands on.
     @Published var blockedPage: BlockedPageChoice {
         didSet { defaults.set(blockedPage.rawValue, forKey: "blockedPage") }
     }
 
     private init() {
-        defaults.register(defaults: ["showsTimeLeft": false, "shortcut": true, "notifications": true, "sounds": true])
+        defaults.register(defaults: ["showsTimeLeft": false, "shortcut": true, "notifications": true, "sounds": true, "crashReports": false])
         earlyExit = EarlyExit(rawValue: defaults.string(forKey: "earlyExit") ?? "") ?? .wait10
         showsTimeLeft = defaults.bool(forKey: "showsTimeLeft")
         shortcut = defaults.bool(forKey: "shortcut")
         notifications = defaults.bool(forKey: "notifications")
         sounds = defaults.bool(forKey: "sounds")
+        crashReports = defaults.bool(forKey: "crashReports")
         blockedPage = BlockedPageChoice(rawValue: defaults.string(forKey: "blockedPage") ?? "") ?? .random
         // The sea and the hold animations are gone; drop what older versions stored for them.
         defaults.removeObject(forKey: "sea")
