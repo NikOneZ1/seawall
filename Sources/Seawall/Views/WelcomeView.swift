@@ -3,11 +3,15 @@ import SwiftUI
 
 /// The first launch, from opening Seawall to a running block in under a minute: pick what pulls
 /// you in (that goes into a list), let Seawall see browser tabs, choose how leaving early works,
-/// then start the first block or leave it for later. Each thing macOS will ask is said on screen
+/// activate Seawall (when the build has licensing), then press and hold to start a 1-hour
+/// Flexible first block, or leave it for later. Each thing macOS will ask is said on screen
 /// before it asks. Doing beats reading.
 struct WelcomeView: View {
     @EnvironmentObject private var controller: BlockController
     @ObservedObject private var preferences = Preferences.shared
+    @ObservedObject private var license = WelcomeLicense.shared
+    @State private var key = ""
+    @State private var hasKey = false
     @State private var step = Welcome.Step.pick
     /// Tiles that were on when the welcome opened (or last saved), and the ones ticked now.
     /// Only the difference is written to the list.
@@ -39,6 +43,7 @@ struct WelcomeView: View {
                 case .pick: pick
                 case .browsers: browsers
                 case .leaving: leaving
+                case .license: licenseStep
                 case .start: start
                 }
             }
@@ -72,6 +77,8 @@ struct WelcomeView: View {
 
     private var items: [StarterItem] { Starter.items(apps: apps) }
 
+    private var shownSteps: [Welcome.Step] { Welcome.Step.shown(showsLicense: license.isAvailable) }
+
     private var list: BlockList? { controller.config.list(listID) }
 
     // MARK: - Footer
@@ -79,25 +86,27 @@ struct WelcomeView: View {
     private var footer: some View {
         HStack(spacing: Space.s) {
             HStack(spacing: 6) {
-                ForEach(Welcome.Step.allCases, id: \.self) { index in
+                ForEach(shownSteps, id: \.self) { index in
                     Circle()
                         .fill(index == step ? Color.primary : Color.primary.opacity(0.2))
                         .frame(width: 6, height: 6)
                 }
             }
             .accessibilityElement()
-            .accessibilityLabel("Step \(step.rawValue + 1) of \(Welcome.Step.allCases.count)")
+            .accessibilityLabel("Step \((shownSteps.firstIndex(of: step) ?? 0) + 1) of \(shownSteps.count)")
             Spacer()
-            if let previous = step.previous {
+            if let previous = step.previous(showsLicense: license.isAvailable) {
                 Button("Back") { step = previous }
             }
             if step.isLast {
                 Button("Not Now") { finish(starting: false) }
                     .help("Close the welcome without starting a block. The lock in the menu bar starts one any time.")
-                Button(startTitle) { finish(starting: true) }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!controller.canStart)
+                // Press and hold, like the menu: a first block never starts from a stray click.
+                HoldButton(title: "Hold to lock for 1 hour", isEnabled: canStartFirstBlock) { finish(starting: true) }
+                    .frame(width: 230)
+            } else if step == .license, !license.isLicensed {
+                Button("Continue Without a Key") { advance() }
+                    .help("Setup works without a key. Starting a block needs one.")
             } else {
                 Button("Continue") { advance() }
                     .buttonStyle(.borderedProminent)
@@ -257,14 +266,71 @@ struct WelcomeView: View {
             }
             .pickerStyle(.radioGroup)
             .labelsHidden()
-            Text("This is the default for new blocks. Change it later in Settings, or for one block right under Hold to lock.")
+            Text("This is the default for new blocks. Change it later in Settings, or for one block right under Hold to lock. Your first block, at the end of this setup, is Flexible, so trying Seawall never traps you.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    // MARK: - 4. Start
+    // MARK: - 4. Activate (only when this build has licensing)
+
+    private var licenseStep: some View {
+        VStack(alignment: .leading, spacing: Space.m) {
+            Text("Activate Seawall")
+                .font(.title.weight(.semibold))
+            if license.isLicensed {
+                Label("Seawall is activated on this Mac.", systemImage: "checkmark.seal.fill")
+                    .foregroundStyle(Color.sea)
+                Text("Next, start your first block.")
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("Seawall is \(WelcomeLicense.price), once, for up to 3 Macs. Not for you? Get a refund within 14 days, no questions asked.")
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Your lists are saved either way. Starting a block needs a license key.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: Space.s) {
+                    Button("Buy for \(WelcomeLicense.price)") { NSWorkspace.shared.open(WelcomeLicense.buyURL) }
+                        .buttonStyle(.borderedProminent)
+                        .help(WelcomeLicense.buyURL.absoluteString)
+                    Button("I already have a key") { hasKey = true }
+                        .disabled(hasKey)
+                }
+                if hasKey {
+                    HStack(spacing: Space.s) {
+                        TextField("License key", text: $key, prompt: Text("Paste the key from your purchase email"))
+                            .autocorrectionDisabled()
+                            .onSubmit(activate)
+                            .disabled(license.isWorking)
+                        if license.isWorking {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Button("Activate", action: activate)
+                            .disabled(license.isWorking || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+                if let failure = license.failure {
+                    Text(failure)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func activate() {
+        let typed = key
+        Task {
+            await license.activate(typed)
+            if license.isLicensed { key = "" }
+        }
+    }
+
+    // MARK: - 5. Start
 
     private var start: some View {
         VStack(alignment: .leading, spacing: Space.m) {
@@ -309,21 +375,15 @@ struct WelcomeView: View {
                     .font(.headline)
                     .lineLimit(1)
                 Spacer(minLength: Space.s)
-                Picker("Length", selection: length) {
-                    ForEach(BlockLength.presets, id: \.self) { length in
-                        Text(length.short).tag(Optional(length))
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-                .help("More lengths and until times are in the menu")
+                Text(Welcome.firstBlockLength.short)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
             }
             Text(blockSummary(list))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("\(controller.nextStrictness.name) · \(controller.nextStrictness.detail)")
+            Text("\(Welcome.firstBlockStrictness.name) · \(Welcome.firstBlockStrictness.detail)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -331,34 +391,24 @@ struct WelcomeView: View {
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
     }
 
-    /// The menu's own length; none of the three when it's something from More.
-    private var length: Binding<BlockLength?> {
-        Binding(get: {
-            BlockLength.presets.contains(controller.config.next.length) ? controller.config.next.length : nil
-        }, set: { length in
-            if let length { controller.config.next.length = length }
-        })
-    }
+    private var firstBlockEnd: Date { Welcome.firstBlockLength.end(from: controller.now) }
 
     private func blockSummary(_ list: BlockList) -> String {
         guard !list.isEmpty(otherBrowsersInstalled: controller.otherBrowsersInstalled) else {
             return "\(list.name) is empty. Go back and tick something to lock."
         }
         let what = list.summary(otherBrowsersInstalled: controller.otherBrowsersInstalled)
-        let end = Format.clockTime(controller.plannedEnd, relativeTo: controller.now)
-        if let rounds = controller.plannedRounds {
-            return "\(what), in \(rounds.count) rounds until \(end)"
+        var summary = "\(what), until \(Format.clockTime(firstBlockEnd, relativeTo: controller.now))"
+        if license.isAvailable, !license.isLicensed {
+            summary += ". Starting a block needs a license key: go Back to activate, or choose Not Now."
         }
-        return "\(what), until \(end)"
+        return summary
     }
 
-    /// "Lock for 1 hour", "Lock until 18:00".
-    private var startTitle: String {
-        guard controller.plannedRounds == nil else { return "Start Block" }
-        switch controller.config.next.length {
-        case .minutes(let minutes): return "Lock for \(Format.length(minutes))"
-        case .until: return "Lock until \(Format.clockTime(controller.plannedEnd, relativeTo: controller.now))"
-        }
+    /// Something to lock and, when this build has licensing, a license.
+    private var canStartFirstBlock: Bool {
+        guard let list, !list.isEmpty(otherBrowsersInstalled: controller.otherBrowsersInstalled) else { return false }
+        return !license.isAvailable || license.isLicensed
     }
 
     /// What macOS may say once the block starts, so it's no surprise.
@@ -374,15 +424,19 @@ struct WelcomeView: View {
 
     private func advance() {
         if step == .pick { savePicks() }
-        if let next = step.next { step = next }
+        if let next = step.next(showsLicense: license.isAvailable) { step = next }
     }
 
-    /// Starting goes through the menu's own path, with the menu's length and strictness.
+    /// Starting goes through the menu's own path (so the same checks apply), as a 1-hour Flexible
+    /// block. Flexible is a one-off for this block; the default from step 3 stays for later ones.
     private func finish(starting: Bool) {
         LoginItem.shared.set(openAtLogin)
         let running = controller.sessions.count
         if starting, let listID {
             controller.config.next.listID = listID
+            controller.config.next.length = Welcome.firstBlockLength
+            controller.config.next.breaks = false
+            controller.strictness = Welcome.firstBlockStrictness
             controller.startBlock()
         }
         Panels.close("welcome")

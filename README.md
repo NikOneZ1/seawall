@@ -41,7 +41,7 @@ Other commands: `make run` runs from `build/`, `make test` runs the tests, `make
 
 A build from source doesn't update itself. Release builds check for updates once a day (Settings → About), and an update never restarts Seawall in the middle of a block: it waits until the block ends.
 
-The first launch walks you to a running block in under a minute: tick what pulls you in (YouTube Shorts, X, Reddit and Instagram are ticked to start with), let Seawall see your tabs, pick how hard leaving early is, then lock, or choose Not Now. It says what macOS will ask before it asks:
+The first launch walks you to a running block in under a minute: tick what pulls you in (YouTube Shorts, X, Reddit and Instagram are ticked to start with), let Seawall see your tabs, pick how hard leaving early is, activate Seawall with your license key (once the license code is in), then press and hold to start a 1-hour Flexible first block, or choose Not Now. It says what macOS will ask before it asks:
 
 - "Seawall wants to control Safari" (and Chrome, Arc, Brave or Edge, if you have them). Allow it. Without that access Seawall can't see tabs, so during a block that browser just gets closed. Said no by mistake? The welcome and the menu both have a button to System Settings, Automation.
 - Notifications, once, when the first block starts: a note 5 minutes before a block ends.

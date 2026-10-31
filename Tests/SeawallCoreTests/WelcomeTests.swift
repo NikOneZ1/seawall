@@ -17,17 +17,45 @@ struct WelcomeTests {
     }
 
     @Test func stepsRunInOrder() {
-        #expect(Welcome.Step.allCases == [.pick, .browsers, .leaving, .start])
+        #expect(Welcome.Step.allCases == [.pick, .browsers, .leaving, .license, .start])
         #expect(Welcome.Step.pick.previous == nil)
         #expect(Welcome.Step.pick.next == .browsers)
+        #expect(Welcome.Step.leaving.next(showsLicense: true) == .license)
+        #expect(Welcome.Step.license.next(showsLicense: true) == .start)
+        #expect(Welcome.Step.start.previous(showsLicense: true) == .license)
         #expect(Welcome.Step.start.next == nil)
         #expect(Welcome.Step.start.isLast)
         #expect(!Welcome.Step.leaving.isLast)
+        #expect(!Welcome.Step.license.isLast)
+    }
+
+    @Test func theLicenseStepIsSkippedWithoutLicensing() {
+        #expect(Welcome.Step.leaving.next(showsLicense: false) == .start)
+        #expect(Welcome.Step.start.previous(showsLicense: false) == .leaving)
+        #expect(Welcome.Step.shown(showsLicense: false) == [.pick, .browsers, .leaving, .start])
+        #expect(Welcome.Step.shown(showsLicense: true) == Welcome.Step.allCases)
+    }
+
+    @Test func theFirstBlockIsAnHourAndFlexible() {
+        #expect(Welcome.firstBlockLength == .minutes(60))
+        #expect(Welcome.firstBlockStrictness == .wait10)
+        #expect(Welcome.firstBlockStrictness.name == "Flexible")
+    }
+
+    @Test func tikTokAndTwitchAreOfferedButNotTicked() {
+        let ids = Starter.items().map(\.id)
+        #expect(ids.contains("site:tiktok.com"))
+        #expect(ids.contains("site:twitch.tv"))
+        let picked = Starter.picked(in: fresh, from: Starter.items())
+        #expect(!picked.contains("site:tiktok.com"))
+        #expect(!picked.contains("site:twitch.tv"))
+        #expect(!Starter.suggestedSites.map(\.value).contains("tiktok.com"))
+        #expect(!Starter.suggestedSites.map(\.value).contains("twitch.tv"))
     }
 
     @Test func suggestsTheFourUsualSuspects() {
         #expect(Starter.suggestedSites.map(\.value) == ["youtube.com/shorts", "x.com", "twitter.com", "reddit.com", "instagram.com"])
-        #expect(Starter.suggestedSites.allSatisfy(\.isOn))
+        #expect(Starter.suggestedSites.allSatisfy { $0.isOn })
         for item in Starter.items() {
             if case .sites(let patterns) = item.kind {
                 for pattern in patterns {
@@ -77,7 +105,7 @@ struct WelcomeTests {
         on.insert("site:x.com")
         Starter.apply(from: again, to: on, offered: items, to: &list)
         #expect(list.sites.count == Starter.suggestedSites.count + 1)
-        #expect(list.sites.filter { $0.value == "x.com" || $0.value == "twitter.com" }.allSatisfy(\.isOn))
+        #expect(list.sites.filter { $0.value == "x.com" || $0.value == "twitter.com" }.allSatisfy { $0.isOn })
     }
 
     @Test func mergesIntoAListBuiltSince() {
