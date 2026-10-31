@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         controller.launch()
+        LicenseModel.shared.start() // Separate from blocks: only checks the license now and then.
 
         if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
             UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)

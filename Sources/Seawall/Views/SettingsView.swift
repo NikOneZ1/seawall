@@ -60,6 +60,8 @@ struct SettingsPane: View {
                 Button("Show the Welcome Again") { Panels.showWelcome(controller: controller) }
             }
 
+            LicenseSection()
+
             Section("About") {
                 HStack(spacing: Space.m) {
                     Image(nsImage: NSApp.applicationIconImage)

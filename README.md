@@ -54,7 +54,11 @@ The first launch walks you through it, including macOS asking "Seawall wants to 
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
-State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there; nothing else leaves your Mac.
+State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Once you enter a license key, Seawall checks it with `seawall.work/license` about once a week; nothing else leaves your Mac.
+
+## License key
+
+Seawall works the same with or without a license. A key from [seawall.work](https://seawall.work/buy) activates up to 3 Macs, in Settings → License. Once activated it stays licensed offline; the app checks in about once a week with `seawall.work/license` only, and a server that can't be reached never takes the license away. Deactivate This Mac frees a spot for another one. Details: [docs/licensing.md](docs/licensing.md).
 
 ## Uninstall
 
