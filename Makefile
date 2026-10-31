@@ -1,4 +1,4 @@
-.PHONY: build run install test icon clean
+.PHONY: build run install test icon dmg clean
 
 build:
 	./scripts/build-app.sh
@@ -25,6 +25,10 @@ test:
 # Redraws Resources/AppIcon.icns after an edit to Resources/AppIcon.svg.
 icon:
 	swift scripts/render-icon.swift
+
+# Signed, notarized dist/Seawall-<version>.dmg. Needs SIGN_IDENTITY; see docs/RELEASING.md.
+dmg:
+	./scripts/make-dmg.sh
 
 clean:
 	rm -rf .build build

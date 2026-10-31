@@ -39,6 +39,8 @@ make install   # builds and copies to /Applications
 
 Other commands: `make run` runs from `build/`, `make test` runs the tests.
 
+Making a signed, notarized release (`make dmg`) is described in [docs/RELEASING.md](docs/RELEASING.md).
+
 The first launch walks you through it, including macOS asking "Seawall wants to control Safari" (and Chrome, if you have it). Allow it. Without that access Seawall can't see tabs, so during a block that browser just gets closed.
 
 ## How it works
