@@ -2,14 +2,16 @@ import Foundation
 import Security
 import SeawallCore
 
-/// The license, for the License section in Settings. Separate from blocks on purpose: nothing
-/// here starts, ends, shortens or pauses a block, quits the app or turns off a feature. Unlicensed,
-/// Seawall works the same and Settings shows a gentle line.
+/// The license. Seawall is paid only: without one the app opens, the welcome, lists and schedules
+/// all work, but a new block doesn't start (`LicenseGate`); "Activate Seawall" asks for a key instead.
+/// A block that is already running never looks at the license: nothing here ends, unlocks,
+/// shortens or pauses one, or quits the app.
 @MainActor
 final class LicenseModel: ObservableObject {
     static let shared = LicenseModel()
 
-    static let buyURL = URL(string: "https://seawall.work/buy?from=app")!
+    static let buyURL = URL(string: "https://seawall.work")!
+    static let price = "$14.99"
     static let supportEmail = "hello@seawall.work"
 
     @Published private(set) var state: LicenseState
@@ -76,6 +78,14 @@ final class LicenseModel: ObservableObject {
         failure = nil
         offersLocalRemoval = false
         refresh()
+    }
+
+    /// Whether a new block may start now. Grace counts as licensed.
+    var mayStartBlock: Bool { LicenseGate.mayStartBlock(state) }
+
+    /// The calm "Activate Seawall" window, for a block that didn't start because there's no key.
+    func askToActivate(because reason: String? = nil) {
+        Panels.showActivate(reason: reason)
     }
 
     private func checkIfDue() {

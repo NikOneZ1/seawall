@@ -58,7 +58,7 @@ State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched 
 
 ## License key
 
-Seawall works the same with or without a license. A key from [seawall.work](https://seawall.work/buy) activates up to 3 Macs, in Settings → License. Once activated it stays licensed offline; the app checks in about once a week with `seawall.work/license` only, and a server that can't be reached never takes the license away. Deactivate This Mac frees a spot for another one. Details: [docs/licensing.md](docs/licensing.md).
+The signed app from [seawall.work](https://seawall.work) is paid: $14.99 once, for up to 3 Macs, with a no-questions refund within 14 days. Without a key Seawall opens and you can set up lists and schedules, but starting a block asks you to activate (Settings → License, or the "Activate Seawall" window). A block that's already running is never touched by licensing. Once activated it stays licensed offline; the app checks in about once a week with `seawall.work/license` only, and a server that can't be reached never takes the license away. Deactivate This Mac frees a spot for another one. The source stays free to build under the GPL. Details: [docs/licensing.md](docs/licensing.md).
 
 ## Uninstall
 

@@ -242,6 +242,85 @@ struct LicenseManagerTests {
         #expect(records.record == nil)
     }
 
+    // Starting blocks needs a license; running blocks never look at it
+
+    @Test func startingABlockNeedsALicense() async throws {
+        let manager = makeManager()
+        #expect(manager.state == .unlicensed)
+        #expect(!LicenseGate.mayStartBlock(manager.state))
+
+        // A failed activation leaves it gated.
+        client.activateResult = .failure(LicenseClientError.server(.invalidKey, message: nil))
+        _ = try? await manager.activate(key: "WRONG")
+        #expect(!LicenseGate.mayStartBlock(manager.state))
+
+        client.activateResult = .success(LicenseResponse(instanceID: "ins_1"))
+        try await manager.activate(key: "KEY-123")
+        #expect(LicenseGate.mayStartBlock(manager.state))
+    }
+
+    @Test func offlineNeverGatesBlocks() async throws {
+        let manager = try await activated()
+        client.validateResult = .failure(LicenseClientError.network("offline"))
+        for _ in 0..<400 {
+            clock.advance(days: 1)
+            await manager.validateIfDue()
+        }
+        #expect(LicenseGate.mayStartBlock(manager.state))
+    }
+
+    @Test func graceStillStartsBlocksThenNewBlocksNeedAKeyAgain() async throws {
+        let manager = try await activated()
+        client.validateResult = .success(LicenseResponse(status: .disabled, instanceID: "ins_1")) // refunded
+
+        clock.advance(days: 8)
+        await manager.validate()
+        guard case .grace = manager.state else {
+            Issue.record("expected grace, got \(manager.state)")
+            return
+        }
+        #expect(LicenseGate.mayStartBlock(manager.state))
+
+        clock.advance(days: 29)
+        await manager.validate()
+        #expect(LicenseGate.mayStartBlock(manager.state))
+
+        clock.advance(days: 1)
+        await manager.validate()
+        #expect(manager.state == .unlicensed)
+        #expect(!LicenseGate.mayStartBlock(manager.state))
+
+        // A key works again straight away.
+        client.activateResult = .success(LicenseResponse(instanceID: "ins_2"))
+        try await manager.activate(key: "NEW-KEY")
+        #expect(LicenseGate.mayStartBlock(manager.state))
+    }
+
+    @Test func losingTheLicenseLeavesARunningBlockAlone() async throws {
+        let manager = try await activated()
+        let started = clock.now
+        let session = Session(startedAt: started, endsAt: started + 90 * day, sites: ["reddit.com"], apps: [],
+                              blocksOtherBrowsers: false)
+        let before = session
+
+        // Refunded and gone after grace, while the (long) block runs.
+        client.validateResult = .failure(LicenseClientError.server(.invalidKey, message: nil))
+        clock.advance(days: 8)
+        await manager.validate()
+        clock.advance(days: 31)
+        await manager.validate()
+        #expect(manager.state == .unlicensed)
+
+        // The block is exactly what it was: same end, still holding, no early way out.
+        #expect(session == before)
+        #expect(session.endsAt == started + 90 * day)
+        #expect(!session.isOver(at: clock.now))
+        #expect(session.isHolding(at: clock.now))
+        #expect(session.unlockState(at: clock.now) == before.unlockState(at: clock.now))
+        // Only a new block is refused.
+        #expect(!LicenseGate.mayStartBlock(manager.state))
+    }
+
     @Test func graceNeverEndsWithoutAnAnswer() async throws {
         let manager = try await activated()
         clock.advance(days: 8)
@@ -425,10 +504,12 @@ struct LicenseContractTests {
         #expect(LicenseManager.verdict(response) == .noAnswer)
     }
 
-    @Test func decodesATrialTheSameWay() throws {
+    @Test func thereIsNoTrialKind() throws {
+        // Seawall is paid only. "trial" is just a word this version doesn't know, handled like any
+        // unknown kind: it neither licenses a Mac nor takes a license away.
         let response = try decode(#"{"ok": true, "kind": "trial", "status": "active", "instance_id": "ins_1"}"#).get()
-        #expect(response.kind == .trial)
-        #expect(LicenseManager.verdict(response) == .yes(response))
+        #expect(response.kind == .other("trial"))
+        #expect(LicenseManager.verdict(response) == .noAnswer)
     }
 
     @Test func wrongTypesReadAsMissing() throws {
