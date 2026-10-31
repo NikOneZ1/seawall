@@ -43,5 +43,23 @@
 	<string>Seawall reads tab addresses so it can swap blocked sites for a calm page while a block is running.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<!-- Updates, through Sparkle. See docs/UPDATES.md. -->
+	<key>SUFeedURL</key>
+	<string>https://seawall.work/appcast.xml</string>
+	<!-- The public half of Seawall's update signing key, printed by Sparkle's generate_keys on
+	     Nikita's Mac (2026-10-31). The private key is in that Mac's login Keychain and never goes
+	     in this repo; back it up with generate_keys -x. Losing it means no more signed updates. -->
+	<key>SUPublicEDKey</key>
+	<string>scVIImCKz+5GjiC1f6Hrfbd3npMkT9Uh9x71nTT/qlo=</string>
+	<!-- Checks once a day without asking first. The request carries the app version and nothing else. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<!-- Updates are offered, not installed silently; the update window lets people opt in. -->
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
 </dict>
 </plist>

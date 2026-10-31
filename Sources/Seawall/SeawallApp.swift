@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         controller.launch()
+        Updates.shared.start(blocks: controller)
 
         if !UserDefaults.standard.bool(forKey: Self.welcomeShownKey) {
             UserDefaults.standard.set(true, forKey: Self.welcomeShownKey)

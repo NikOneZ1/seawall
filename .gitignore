@@ -4,3 +4,14 @@
 build/
 *.xcodeproj/
 xcuserdata/
+
+# Sparkle: the EdDSA private key lives in the login keychain. An exported copy
+# (generate_keys -x) belongs in a password manager or backup, never in this repo.
+*sparkle*private*
+*sparkle*key*
+*.sparkle-key
+eddsa*
+ed25519*
+# Release archives and the appcast generated from them (docs/UPDATES.md).
+dist/
+releases/
