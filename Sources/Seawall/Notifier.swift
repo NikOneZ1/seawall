@@ -83,6 +83,13 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         return true
     }
 
+    /// Takes back every pending "5 minutes left" and clears Seawall's notifications from
+    /// Notification Center, so nothing turns up after an uninstall.
+    func removeAll() {
+        center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
+    }
+
     private static func id(_ session: Session) -> String {
         "block.\(Int(session.startedAt.timeIntervalSince1970))"
     }

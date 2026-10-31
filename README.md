@@ -60,17 +60,19 @@ With nothing locked and the menu closed, Seawall only looks at its schedules eve
 
 ## Uninstall
 
-Quit Seawall from its menu (the Quit button shows when no block is running), then:
+In Settings, press **Uninstall Seawall…**. It removes your lists and history, settings, site icons, the watchdog LaunchAgent, Open at login and the permission to read browser tabs, can move the app to the Trash, and quits. Like Quit, it only works when no block is running (or about to start on schedule); it's never a faster way out than leaving early.
+
+By hand: quit Seawall from its menu (Quit is on when no block is running), then:
 
 ```bash
 launchctl bootout gui/$(id -u)/com.nikitaverba.Seawall.watchdog 2>/dev/null
 rm -f ~/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist
 rm -rf /Applications/Seawall.app "$HOME/Library/Application Support/Seawall"
-defaults delete com.nikitaverba.Seawall
+defaults delete com.nikitaverba.Seawall 2>/dev/null
 tccutil reset AppleEvents com.nikitaverba.Seawall
 ```
 
-The last line forgets the permission to control Safari, Chrome and the other browsers. Versions before 1.0 were called FocusLock inside; if you ran one, repeat the lines that mention `com.nikitaverba.Seawall` with `com.nikitaverba.FocusLock`.
+The last line forgets the permission to control Safari, Chrome and the other browsers. Versions before 1.0 were called FocusLock inside; if you ran one, repeat the lines that mention `com.nikitaverba.Seawall` with `com.nikitaverba.FocusLock` (the in-app Uninstall removes both). The full list of what Seawall writes, and how to check it's all gone, is in [docs/UNINSTALL.md](docs/UNINSTALL.md).
 
 ## Honest limits
 
