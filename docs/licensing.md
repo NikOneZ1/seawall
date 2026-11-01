@@ -15,7 +15,7 @@ If the key is already on 3 Macs, deactivate it on one of them (Settings → Lice
 
 ## What is sent, and where
 
-The app only talks to `https://seawall.work/license` (`activate`, `validate`, `deactivate`), never to the payment provider directly. It sends the key, and either this Mac's name (when activating) or the activation id it got back. The key is kept in your login Keychain ("Seawall License"); the activation id, dates and the cached status are in Seawall's preferences (the `license` key in `defaults read com.nikitaverba.FocusLock`).
+The app only talks to `https://seawall.work/license` (`activate`, `validate`, `deactivate`), never to the payment provider directly. It sends the key, and either this Mac's name (when activating) or the activation id it got back. The key is kept in your login Keychain ("Seawall License"); the activation id, dates and the cached status are in Seawall's preferences (the `license` key in `defaults read com.nikitaverba.Seawall`; a pre-1.0 activation under `com.nikitaverba.FocusLock` is carried over by the bundle ID move on first launch).
 
 ## Offline and grace
 
