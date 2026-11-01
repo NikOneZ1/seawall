@@ -369,6 +369,7 @@ final class BlockController: ObservableObject {
         appGuard.stop()
         pageServer.stop()
         Watchdog.uninstall()
+        Watchdog.uninstallLegacy()
         return nil
     }
 

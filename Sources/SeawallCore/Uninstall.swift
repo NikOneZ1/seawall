@@ -34,8 +34,13 @@ public enum UninstallRefusal: Equatable, Sendable {
 
 /// What uninstalling decides and touches. The removal itself lives in the app.
 public enum Uninstall {
-    public static let bundleID = "com.nikitaverba.FocusLock"
-    public static let watchdogLabel = "com.nikitaverba.FocusLock.watchdog"
+    /// The bundle ID since 1.0, and the one before it. A Mac that ran a pre-1.0 build can still
+    /// hold the old ID's preferences, caches and browser permission (the 1.0 move copies the
+    /// preferences over and retires the old watchdog, but leaves the rest), so both are cleaned.
+    public static let bundleID = "com.nikitaverba.Seawall"
+    public static let legacyBundleID = "com.nikitaverba.FocusLock"
+    public static let bundleIDs = [bundleID, legacyBundleID]
+    public static let watchdogLabel = "\(bundleID).watchdog"
 
     /// Why uninstalling has to wait, or `nil` when it can go ahead.
     ///
@@ -62,8 +67,8 @@ public enum Uninstall {
     }
 
     /// The watchdog's LaunchAgent, which reopens the app during a block.
-    public static func launchAgent(home: URL) -> URL {
-        library(home).appendingPathComponent("LaunchAgents/\(watchdogLabel).plist")
+    public static func launchAgent(home: URL, bundleID: String = bundleID) -> URL {
+        library(home).appendingPathComponent("LaunchAgents/\(bundleID).watchdog.plist")
     }
 
     /// Every file and folder Seawall (or macOS on its behalf) writes in the home folder, to
@@ -73,24 +78,25 @@ public enum Uninstall {
     public static func files(home: URL) -> [URL] {
         let library = library(home)
         return [
-            launchAgent(home: home),
             // Lists, schedules, running blocks, history, finds, and the site icons in Icons/.
             library.appendingPathComponent("Application Support/Seawall", isDirectory: true),
             // Where the app kept them while it was called FocusLock; moved on first launch,
             // but left behind if both existed.
             library.appendingPathComponent("Application Support/FocusLock", isDirectory: true),
+        ] + bundleIDs.flatMap { id in [
+            launchAgent(home: home, bundleID: id),
             // URLSession's cache and cookie store, from fetching site icons.
-            library.appendingPathComponent("Caches/\(bundleID)", isDirectory: true),
-            library.appendingPathComponent("HTTPStorages/\(bundleID)", isDirectory: true),
-            library.appendingPathComponent("HTTPStorages/\(bundleID).binarycookies"),
+            library.appendingPathComponent("Caches/\(id)", isDirectory: true),
+            library.appendingPathComponent("HTTPStorages/\(id)", isDirectory: true),
+            library.appendingPathComponent("HTTPStorages/\(id).binarycookies"),
             // Window positions macOS may keep when the app quits.
-            library.appendingPathComponent("Saved Application State/\(bundleID).savedState", isDirectory: true),
-        ]
+            library.appendingPathComponent("Saved Application State/\(id).savedState", isDirectory: true),
+        ] }
     }
 
     /// The preferences file, for the docs and for checking it's gone. Removed through
     /// `UserDefaults.removePersistentDomain`, not deleted directly.
-    public static func preferences(home: URL) -> URL {
+    public static func preferences(home: URL, bundleID: String = bundleID) -> URL {
         library(home).appendingPathComponent("Preferences/\(bundleID).plist")
     }
 

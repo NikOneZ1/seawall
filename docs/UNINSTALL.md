@@ -26,24 +26,23 @@ During a block the watchdog reopens Seawall every 10 seconds and at login, by de
 2. In Terminal:
 
 ```bash
-launchctl bootout gui/$(id -u)/com.nikitaverba.FocusLock.watchdog 2>/dev/null
-rm -f ~/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist
+launchctl bootout gui/$(id -u)/com.nikitaverba.Seawall.watchdog 2>/dev/null
+rm -f ~/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist
 rm -rf /Applications/Seawall.app \
   "$HOME/Library/Application Support/Seawall" \
-  "$HOME/Library/Application Support/FocusLock" \
-  "$HOME/Library/Caches/com.nikitaverba.FocusLock" \
-  "$HOME/Library/HTTPStorages/com.nikitaverba.FocusLock" \
-  "$HOME/Library/HTTPStorages/com.nikitaverba.FocusLock.binarycookies" \
-  "$HOME/Library/Saved Application State/com.nikitaverba.FocusLock.savedState"
-defaults delete com.nikitaverba.FocusLock 2>/dev/null
-tccutil reset AppleEvents com.nikitaverba.FocusLock
+  "$HOME/Library/Caches/com.nikitaverba.Seawall" \
+  "$HOME/Library/HTTPStorages/com.nikitaverba.Seawall" \
+  "$HOME/Library/HTTPStorages/com.nikitaverba.Seawall.binarycookies" \
+  "$HOME/Library/Saved Application State/com.nikitaverba.Seawall.savedState"
+defaults delete com.nikitaverba.Seawall 2>/dev/null
+tccutil reset AppleEvents com.nikitaverba.Seawall
 ```
+
+If you ever ran a version before 1.0, it used the bundle ID `com.nikitaverba.FocusLock` and the folder `Application Support/FocusLock`. Repeat the lines above with `com.nikitaverba.Seawall` replaced by `com.nikitaverba.FocusLock`, and remove `"$HOME/Library/Application Support/FocusLock"` too. The in-app Uninstall does both for you.
 
 3. If "Open Seawall at login" was on, check System Settings, General, Login Items, and remove Seawall if it's still listed.
 
 `tccutil reset` forgets the "Seawall wants to control Safari" answers (and Chrome's and the rest). It needs no admin password: these are your own permissions. Apps can't reliably reset their own permissions, which is why the command is here too.
-
-The names say FocusLock because that was the app's first name.
 
 ## What stays
 
@@ -54,7 +53,7 @@ The names say FocusLock because that was the app's first name.
 
 ```bash
 pgrep -fl Seawall                                                      # nothing
-launchctl print gui/$(id -u)/com.nikitaverba.FocusLock.watchdog        # fails: "Could not find service"
-ls ~/Library/LaunchAgents | grep -i focuslock                          # nothing
+launchctl print gui/$(id -u)/com.nikitaverba.Seawall.watchdog         # fails: "Could not find service"
+ls ~/Library/LaunchAgents | grep -i -e seawall -e focuslock            # nothing
 ls "$HOME/Library/Application Support" | grep -i -e seawall -e focuslock  # nothing
 ```

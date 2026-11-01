@@ -89,7 +89,9 @@ enum Uninstaller {
 
         leftovers += removeData()
 
-        if !resetAutomation() {
+        // The pre-1.0 ID's grants too, best effort: tccutil can refuse an ID no installed app has.
+        _ = resetAutomation(Uninstall.legacyBundleID)
+        if !resetAutomation(Uninstall.bundleID) {
             leftovers.append("Forget the browser permission, in Terminal: tccutil reset AppleEvents \(Uninstall.bundleID)")
         }
 
@@ -144,7 +146,7 @@ enum Uninstaller {
                 leftovers.append("Delete \(url.path)")
             }
         }
-        UserDefaults.standard.removePersistentDomain(forName: Uninstall.bundleID)
+        for id in Uninstall.bundleIDs { UserDefaults.standard.removePersistentDomain(forName: id) }
         UserDefaults.standard.synchronize()
         return leftovers
     }
@@ -152,10 +154,10 @@ enum Uninstaller {
     /// `tccutil reset AppleEvents <bundle ID>`: forgets "Seawall wants to control Safari" and the
     /// rest. It works without admin rights for the current user's own grants; if it fails anyway,
     /// the user gets the command to run.
-    private static func resetAutomation() -> Bool {
+    private static func resetAutomation(_ bundleID: String) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
-        process.arguments = ["reset", "AppleEvents", Uninstall.bundleID]
+        process.arguments = ["reset", "AppleEvents", bundleID]
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         do {

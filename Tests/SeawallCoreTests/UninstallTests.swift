@@ -99,9 +99,15 @@ struct UninstallTests {
         let home = URL(fileURLWithPath: "/Users/nikita", isDirectory: true)
         let paths = Uninstall.files(home: home).map(\.path)
         #expect(paths == [
-            "/Users/nikita/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist",
             "/Users/nikita/Library/Application Support/Seawall",
             "/Users/nikita/Library/Application Support/FocusLock",
+            "/Users/nikita/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist",
+            "/Users/nikita/Library/Caches/com.nikitaverba.Seawall",
+            "/Users/nikita/Library/HTTPStorages/com.nikitaverba.Seawall",
+            "/Users/nikita/Library/HTTPStorages/com.nikitaverba.Seawall.binarycookies",
+            "/Users/nikita/Library/Saved Application State/com.nikitaverba.Seawall.savedState",
+            // A pre-1.0 install's leftovers, under the old bundle ID.
+            "/Users/nikita/Library/LaunchAgents/com.nikitaverba.FocusLock.watchdog.plist",
             "/Users/nikita/Library/Caches/com.nikitaverba.FocusLock",
             "/Users/nikita/Library/HTTPStorages/com.nikitaverba.FocusLock",
             "/Users/nikita/Library/HTTPStorages/com.nikitaverba.FocusLock.binarycookies",
@@ -118,7 +124,9 @@ struct UninstallTests {
 
     @Test func knowsWhereTheWatchdogAndPreferencesLive() {
         let home = URL(fileURLWithPath: "/Users/nikita", isDirectory: true)
-        #expect(Uninstall.launchAgent(home: home).lastPathComponent == "com.nikitaverba.FocusLock.watchdog.plist")
-        #expect(Uninstall.preferences(home: home).path == "/Users/nikita/Library/Preferences/com.nikitaverba.FocusLock.plist")
+        #expect(Uninstall.launchAgent(home: home).lastPathComponent == "com.nikitaverba.Seawall.watchdog.plist")
+        #expect(Uninstall.watchdogLabel == "com.nikitaverba.Seawall.watchdog")
+        #expect(Uninstall.preferences(home: home).path == "/Users/nikita/Library/Preferences/com.nikitaverba.Seawall.plist")
+        #expect(Uninstall.bundleIDs == ["com.nikitaverba.Seawall", "com.nikitaverba.FocusLock"])
     }
 }
