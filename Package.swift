@@ -11,10 +11,12 @@ let package = Package(
     targets: [
         // Pure logic (rules, timers, wording) — no AppKit, fully unit-tested.
         .target(name: "SeawallCore"),
+        // The crash handler, in C so it only makes calls that are safe inside a signal handler.
+        .target(name: "CrashCatcher"),
         // The menu bar app itself.
         .executableTarget(
             name: "Seawall",
-            dependencies: ["SeawallCore", .product(name: "Sparkle", package: "Sparkle")],
+            dependencies: ["SeawallCore", "CrashCatcher", .product(name: "Sparkle", package: "Sparkle")],
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
         .testTarget(name: "SeawallCoreTests", dependencies: ["SeawallCore"]),

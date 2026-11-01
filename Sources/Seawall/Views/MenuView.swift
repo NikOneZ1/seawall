@@ -65,6 +65,7 @@ struct MoreMenu: View {
                     Text("An update installs when the block ends")
                 }
             }
+            Button("Send Feedback…") { Diagnostics.sendFeedback(controller: controller) }
             Divider()
             if locked {
                 Text("Quit is off while a block runs")
