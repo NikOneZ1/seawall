@@ -10,6 +10,11 @@ struct UpdateKeyTests {
         #expect(UpdateKey.isUsable("  \(key)\n"))
     }
 
+    @Test func theKeyInInfoPlistIsUsable() {
+        // Resources/Info.plist on main (generate_keys, account com.nikitaverba.Seawall).
+        #expect(UpdateKey.isUsable("PUrEyEZBVx5FJ7UEz2y/OAbMLDaUNKp4DCeFdwd82Bs="))
+    }
+
     @Test func placeholderAndJunkAreNot() {
         #expect(!UpdateKey.isUsable(nil))
         #expect(!UpdateKey.isUsable(""))

@@ -1,4 +1,5 @@
 import AppKit
+import SeawallCore
 import Sparkle
 
 /// Automatic updates, through Sparkle. Only release builds carry the feed address (see
@@ -14,7 +15,11 @@ final class Updater: NSObject, ObservableObject {
     /// Whether a block is running. An update waits for it to end before relaunching the app.
     var isBlocking: () -> Bool = { false }
     /// The relaunch Sparkle was asked to hold back until the blocks end.
-    private var heldInstall: (() -> Void)?
+    private var heldInstall: (() -> Void)? {
+        didSet { waitingForBlock = heldInstall != nil }
+    }
+    /// An update is downloaded and waits for the blocks to end; the menu and Settings say so.
+    @Published private(set) var waitingForBlock = false
 
     var isAvailable: Bool { controller != nil }
 
@@ -31,7 +36,8 @@ final class Updater: NSObject, ObservableObject {
         let info = Bundle.main.infoDictionary ?? [:]
         let feed = info["SUFeedURL"] as? String ?? ""
         let key = info["SUPublicEDKey"] as? String ?? ""
-        return !feed.isEmpty && !key.isEmpty
+        // Sparkle refuses a key that isn't a 32-byte Ed25519 key, with an alert on every launch.
+        return !feed.isEmpty && UpdateKey.isUsable(key)
     }
 
     func start() {
