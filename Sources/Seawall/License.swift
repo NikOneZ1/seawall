@@ -81,7 +81,18 @@ final class LicenseModel: ObservableObject {
     }
 
     /// Whether a new block may start now. Grace counts as licensed.
-    var mayStartBlock: Bool { LicenseGate.mayStartBlock(state) }
+    var mayStartBlock: Bool {
+        #if DEBUG
+        DevLicense.mayStartBlock(state, isDebugBuild: true, environment: ProcessInfo.processInfo.environment)
+        #else
+        LicenseGate.mayStartBlock(state)
+        #endif
+    }
+
+    #if DEBUG
+    /// Debug builds only: launched with SEAWALL_DEV_LICENSE=1, blocks start without a key.
+    var isDevLicense: Bool { DevLicense.isOn(environment: ProcessInfo.processInfo.environment) }
+    #endif
 
     /// The calm "Activate Seawall" window, for a block that didn't start because there's no key.
     func askToActivate(because reason: String? = nil) {

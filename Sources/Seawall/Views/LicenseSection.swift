@@ -10,6 +10,14 @@ struct LicenseSection: View {
 
     var body: some View {
         Section {
+            #if DEBUG
+            if license.isDevLicense {
+                Label("Dev license: this debug build starts blocks without a key (SEAWALL_DEV_LICENSE=1). Release builds have no such switch.",
+                      systemImage: "hammer.fill")
+                    .labelStyle(SeaIconLabelStyle())
+                    .foregroundStyle(.orange)
+            }
+            #endif
             switch license.state {
             case .unlicensed:
                 unlicensed

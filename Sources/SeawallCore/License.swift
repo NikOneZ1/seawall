@@ -306,6 +306,28 @@ public enum LicenseGate {
     }
 }
 
+#if DEBUG
+/// A test-only unlock for debug builds: launched with `SEAWALL_DEV_LICENSE=1` in its environment,
+/// a debug build starts blocks without a key. The whole type is compiled out of release builds
+/// (`swift build -c release` doesn't define DEBUG), so a release binary has no bypass and doesn't
+/// even contain the variable's name; scripts/build-app.sh checks that for every release build.
+public enum DevLicense {
+    public static let variable = "SEAWALL_DEV_LICENSE"
+
+    /// On only for exactly "1", so a stray empty or "0" value does nothing.
+    public static func isOn(environment: [String: String]) -> Bool {
+        environment[variable] == "1"
+    }
+
+    /// The gate a debug build uses: the real one, or open with the dev license.
+    /// `isDebugBuild` is the build's own `DEBUG` flag, passed in so both answers can be tested.
+    public static func mayStartBlock(_ state: LicenseState, isDebugBuild: Bool, environment: [String: String]) -> Bool {
+        if isDebugBuild && isOn(environment: environment) { return true }
+        return LicenseGate.mayStartBlock(state)
+    }
+}
+#endif
+
 /// The timings, in one place.
 public enum LicensePolicy {
     /// Ask the server again a week after the last "yes".
