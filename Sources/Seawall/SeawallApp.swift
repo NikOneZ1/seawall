@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Updater.shared.isBlocking = { [controller] in !controller.sessions.isEmpty }
         Updater.shared.start()
         CrashReporter.crashForTestingIfAsked()
+        LicenseModel.shared.start() // Separate from blocks: only checks the license now and then.
 
         // After launch, which restores blocks from disk: a watchdog relaunch mid-block must
         // stay invisible. Marked seen either way, so it never turns up once that block ends.

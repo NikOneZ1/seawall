@@ -57,4 +57,11 @@ SPARKLE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
 # The entitlement lets the hardened runtime send Apple Events, which is how tabs are read.
 "${SIGN[@]}" --entitlements Resources/Seawall.entitlements "$APP"
 
+# The dev license (SEAWALL_DEV_LICENSE, see DevLicense) is compiled into debug builds only.
+# A release build that still names it fails here instead of shipping.
+if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | grep -q SEAWALL_DEV_LICENSE; then
+    echo "error: this release build contains the debug-only dev license" >&2
+    exit 1
+fi
+
 echo "Built $APP"

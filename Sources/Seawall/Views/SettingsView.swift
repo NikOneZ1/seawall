@@ -82,6 +82,7 @@ struct SettingsPane: View {
                     }
                 }
             }
+            LicenseSection()
 
             Section("About") {
                 HStack(spacing: Space.m) {

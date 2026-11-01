@@ -62,7 +62,7 @@ The welcome shows up once, never over a running block. Settings, Show the Welcom
 | If you kill Seawall | While anything is blocked, a LaunchAgent (`~/Library/LaunchAgents/com.nikitaverba.Seawall.watchdog.plist`) relaunches the app every 10 seconds and at login. Blocks are restored from disk. |
 | If you change the clock | Block time runs on a monotonic clock, so moving the system time forward doesn't shorten a block. |
 
-With nothing locked and the menu closed, Seawall only looks at its schedules every couple of seconds and redraws nothing, so it stays near 0% CPU. State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Release builds also fetch the update feed once a day, sending nothing but the app's version. The only other way anything leaves your Mac is an email you choose to send yourself, below.
+With nothing locked and the menu closed, Seawall only looks at its schedules every couple of seconds and redraws nothing, so it stays near 0% CPU. State lives in `~/Library/Application Support/Seawall/`. Site icons are fetched once from the site itself (`/apple-touch-icon.png` or `/favicon.ico`) and cached in `Icons/` there. Release builds also fetch the update feed once a day, sending nothing but the app's version. Once you enter a license key, Seawall checks it with `seawall.work/license` about once a week. The only other way anything leaves your Mac is an email you choose to send yourself, below.
 
 ## Feedback and crash reports
 
@@ -70,6 +70,10 @@ With nothing locked and the menu closed, Seawall only looks at its schedules eve
 - **Offer to send crash reports** in Settings is off until you turn it on. With it on, a crash saves a short report in `Crashes/`: the versions, how Seawall stopped, and where in its code. It never holds addresses, sites or list contents. On the next launch Seawall asks once whether to email it, shows the file in Finder to attach, and lets you delete it instead. It keeps at most 5 reports for up to 30 days. With the setting off, Seawall doesn't watch for crashes at all, and turning it off deletes saved reports.
 
 To test crash reports, quit Seawall and run `open --env SEAWALL_TEST_CRASH=trap -a Seawall`. It crashes on purpose 10 seconds later (`segv` and `exception` are the other kinds). Only that one launch is affected: the watchdog relaunches with a plain `open`.
+
+## License key
+
+The signed app from [seawall.work](https://seawall.work) is paid: $14.99 once, for up to 3 Macs, with a no-questions refund within 14 days. Without a key Seawall opens and you can set up lists and schedules, but starting a block asks you to activate (Settings → License, or the "Activate Seawall" window). A block that's already running is never touched by licensing. Once activated it stays licensed offline; the app checks in about once a week with `seawall.work/license` only, and a server that can't be reached never takes the license away. Deactivate This Mac frees a spot for another one. The source stays free to build under the GPL. Details: [docs/licensing.md](docs/licensing.md).
 
 ## Uninstall
 
