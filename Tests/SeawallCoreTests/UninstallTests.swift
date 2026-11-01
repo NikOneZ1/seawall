@@ -129,4 +129,10 @@ struct UninstallTests {
         #expect(Uninstall.preferences(home: home).path == "/Users/nikita/Library/Preferences/com.nikitaverba.Seawall.plist")
         #expect(Uninstall.bundleIDs == ["com.nikitaverba.Seawall", "com.nikitaverba.FocusLock"])
     }
+
+    /// Must match `KeychainLicenseKeyStore` in the license code exactly, or uninstall leaves the key behind.
+    @Test func removesTheLicenseKeyByItsKeychainNames() {
+        #expect(Uninstall.licenseKey == KeychainItem(service: "Seawall License", account: "license-key"))
+        #expect(Uninstall.keychainItems == [Uninstall.licenseKey])
+    }
 }

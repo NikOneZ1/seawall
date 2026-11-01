@@ -60,7 +60,7 @@ With nothing locked and the menu closed, Seawall only looks at its schedules eve
 
 ## Uninstall
 
-In Settings, press **Uninstall Seawall…**. It removes your lists and history, settings, site icons, the watchdog LaunchAgent, Open at login and the permission to read browser tabs, can move the app to the Trash, and quits. Like Quit, it only works when no block is running (or about to start on schedule); it's never a faster way out than leaving early.
+In Settings, press **Uninstall Seawall…**. It removes your lists and history, settings, site icons, your license key from the Keychain, the watchdog LaunchAgent, Open at login and the permission to read browser tabs, can move the app to the Trash, and quits. Like Quit, it only works when no block is running (or about to start on schedule); it's never a faster way out than leaving early.
 
 By hand: quit Seawall from its menu (Quit is on when no block is running), then:
 

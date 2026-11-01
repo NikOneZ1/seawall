@@ -6,6 +6,7 @@ Open Settings (the gear in the menu, then Settings…) and press **Uninstall Sea
 
 - your lists, schedules, Today history and finds (`~/Library/Application Support/Seawall`)
 - Seawall's settings and saved site icons
+- your license key, if one is saved (the "Seawall License" item in the login Keychain)
 - the helper that reopens Seawall during a block (the watchdog LaunchAgent)
 - Open at login
 - Seawall's permission to read browser tabs (Automation)
@@ -36,6 +37,7 @@ rm -rf /Applications/Seawall.app \
   "$HOME/Library/Saved Application State/com.nikitaverba.Seawall.savedState"
 defaults delete com.nikitaverba.Seawall 2>/dev/null
 tccutil reset AppleEvents com.nikitaverba.Seawall
+security delete-generic-password -s "Seawall License" -a license-key 2>/dev/null
 ```
 
 If you ever ran a version before 1.0, it used the bundle ID `com.nikitaverba.FocusLock` and the folder `Application Support/FocusLock`. Repeat the lines above with `com.nikitaverba.Seawall` replaced by `com.nikitaverba.FocusLock`, and remove `"$HOME/Library/Application Support/FocusLock"` too. The in-app Uninstall does both for you.
@@ -46,6 +48,7 @@ If you ever ran a version before 1.0, it used the bundle ID `com.nikitaverba.Foc
 
 ## What stays
 
+- Uninstalling doesn't free your license's seat on the server. To use the key on another Mac, deactivate it in Settings, License first, or email hello@seawall.work.
 - The blocked page keeps its own counters (breaths, wins, best stack) in your browser, under `127.0.0.1`. Clear that site's data in the browser if you want them gone.
 - Seawall's entry under System Settings, Notifications may stay until macOS tidies it up.
 

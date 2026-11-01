@@ -32,6 +32,17 @@ public enum UninstallRefusal: Equatable, Sendable {
     }
 }
 
+/// A Keychain generic password, by the names it's stored under.
+public struct KeychainItem: Equatable, Sendable {
+    public let service: String
+    public let account: String
+
+    public init(service: String, account: String) {
+        self.service = service
+        self.account = account
+    }
+}
+
 /// What uninstalling decides and touches. The removal itself lives in the app.
 public enum Uninstall {
     /// The bundle ID since 1.0, and the one before it. A Mac that ran a pre-1.0 build can still
@@ -41,6 +52,13 @@ public enum Uninstall {
     public static let legacyBundleID = "com.nikitaverba.FocusLock"
     public static let bundleIDs = [bundleID, legacyBundleID]
     public static let watchdogLabel = "\(bundleID).watchdog"
+
+    /// The license key, as the license code saves it (`KeychainLicenseKeyStore`): a generic password
+    /// in the login Keychain. Deleted by these exact names; "not found" means there's nothing to do.
+    /// If the license code ever renames it, this has to follow.
+    public static let licenseKey = KeychainItem(service: "Seawall License", account: "license-key")
+    /// Everything Seawall keeps in the Keychain.
+    public static let keychainItems = [licenseKey]
 
     /// Why uninstalling has to wait, or `nil` when it can go ahead.
     ///

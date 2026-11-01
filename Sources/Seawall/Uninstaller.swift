@@ -1,4 +1,5 @@
 import AppKit
+import Security
 import SeawallCore
 
 /// "Uninstall Seawall…": removes everything Seawall put on this Mac, then quits.
@@ -45,6 +46,7 @@ enum Uninstaller {
             "This removes from this Mac:",
             "• Your lists, schedules, Today history and finds",
             "• Seawall's settings and saved site icons",
+            "• Your license key, if one is saved in the Keychain",
             "• The helper that reopens Seawall during a block",
             "• Open at login",
             "• Seawall's permission to read browser tabs (Automation)",
@@ -88,6 +90,7 @@ enum Uninstaller {
         Panels.close("welcome")
 
         leftovers += removeData()
+        leftovers += removeKeychainItems()
 
         // The pre-1.0 ID's grants too, best effort: tccutil can refuse an ID no installed app has.
         _ = resetAutomation(Uninstall.legacyBundleID)
@@ -148,6 +151,22 @@ enum Uninstaller {
         }
         for id in Uninstall.bundleIDs { UserDefaults.standard.removePersistentDomain(forName: id) }
         UserDefaults.standard.synchronize()
+        return leftovers
+    }
+
+    /// Deletes Seawall's Keychain items (the license key), by the exact names they're saved under.
+    /// Nothing saved is fine. Returns what couldn't be removed, as steps for the user.
+    static func removeKeychainItems() -> [String] {
+        var leftovers: [String] = []
+        for item in Uninstall.keychainItems {
+            let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                        kSecAttrService as String: item.service,
+                                        kSecAttrAccount as String: item.account]
+            let status = SecItemDelete(query as CFDictionary)
+            guard status != errSecSuccess, status != errSecItemNotFound else { continue }
+            log.error("Uninstall, Keychain \(item.service, privacy: .public): \(status, privacy: .public)")
+            leftovers.append("Delete \"\(item.service)\" in Keychain Access (login keychain).")
+        }
         return leftovers
     }
 
