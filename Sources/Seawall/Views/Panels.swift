@@ -46,6 +46,13 @@ enum Panels {
     static func showWelcome(controller: BlockController) {
         MenuShortcut.closeMenu()
         if let window = windows["welcome"] {
+            // Closed windows are kept, and with them the step they were left on. Shown again
+            // from Settings, it starts at the beginning, from the lists as they are now.
+            if !window.isVisible {
+                window.contentViewController = NSHostingController(rootView: WelcomeView().environmentObject(controller))
+                window.setContentSize(NSSize(width: 560, height: 640))
+                window.center()
+            }
             bringForward(window)
             return
         }
