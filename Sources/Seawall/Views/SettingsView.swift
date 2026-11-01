@@ -80,6 +80,11 @@ struct SettingsPane: View {
                     Toggle("Check for updates automatically", isOn: $updater.checksAutomatically)
                     Button("Check for Updates…") { updater.checkForUpdates() }
                         .disabled(!updater.canCheck)
+                    if updater.waitingForBlock {
+                        Text("An update is ready. It installs once no block is running.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 HStack {
                     Link("Source on GitHub", destination: Self.repository)
