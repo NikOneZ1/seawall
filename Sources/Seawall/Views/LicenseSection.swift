@@ -29,7 +29,8 @@ struct LicenseSection: View {
                     .font(.subheadline)
                     .foregroundStyle(.orange)
             }
-            if let failure = license.failure {
+            // While unlicensed, the activation form shows its own failure line.
+            if let failure = license.failure, license.state != .unlicensed {
                 Text(failure.message)
                     .font(.subheadline)
                     .foregroundStyle(.orange)
@@ -40,50 +41,23 @@ struct LicenseSection: View {
         }
     }
 
-    @ViewBuilder private var unlicensed: some View {
-        Text("Seawall isn't activated on this Mac yet. Starting a block needs a license key: \(LicenseModel.price) once, for up to 3 Macs.")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        HStack(spacing: Space.s) {
-            TextField("License key", text: $key, prompt: Text("Paste your key"))
-                .autocorrectionDisabled()
-                .onSubmit(activate)
-                .disabled(license.isWorking)
-            if license.isWorking {
-                ProgressView()
-                    .controlSize(.small)
-            }
-            Button("Activate", action: activate)
-                .disabled(license.isWorking || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
-        HStack {
-            Link("Buy Seawall for \(LicenseModel.price)", destination: LicenseModel.buyURL)
-            Spacer()
-            Text("Works on up to 3 Macs.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
+    private var unlicensed: some View {
+        LicenseActivationForm(layout: .formRows, key: $key, price: LicenseModel.price,
+                              buyURL: LicenseModel.buyURL, isWorking: license.isWorking,
+                              failure: license.failure?.message, isLicensed: false,
+                              buy: { NSWorkspace.shared.open(LicenseModel.buyURL) },
+                              activate: activate)
     }
 
     @ViewBuilder private func licensed(_ info: LicenseInfo) -> some View {
-        HStack {
-            Label(info.summary, systemImage: "checkmark.seal.fill")
-                .labelStyle(SeaIconLabelStyle())
-            Spacer()
-            if license.isWorking {
-                ProgressView()
-                    .controlSize(.small)
+        LicensedRow(summary: info.summary, isWorking: license.isWorking) { confirmingDeactivate = true }
+            .confirmationDialog("Deactivate Seawall on this Mac?", isPresented: $confirmingDeactivate) {
+                Button("Deactivate", role: .destructive) {
+                    Task { await license.deactivate() }
+                }
+            } message: {
+                Text("This frees one of your Macs for the key. Blocks keep running, and you can activate again with the same key.")
             }
-            Button("Deactivate This Mac…") { confirmingDeactivate = true }
-                .disabled(license.isWorking)
-        }
-        .confirmationDialog("Deactivate Seawall on this Mac?", isPresented: $confirmingDeactivate) {
-            Button("Deactivate", role: .destructive) {
-                Task { await license.deactivate() }
-            }
-        } message: {
-            Text("This frees one of your Macs for the key. Blocks keep running, and you can activate again with the same key.")
-        }
         if license.offersLocalRemoval {
             HStack {
                 Text("Remove it from this Mac anyway? Its spot stays taken until you deactivate later or email \(LicenseModel.supportEmail).")
@@ -104,13 +78,24 @@ struct LicenseSection: View {
     }
 }
 
-/// The label's icon in Seawall's teal, its text in the usual colour.
-private struct SeaIconLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: Space.s) {
-            configuration.icon
-                .foregroundStyle(Color.sea)
-            configuration.title
+/// "Licensed on this Mac · 1 of 3 Macs" and Deactivate. Values and closures only, so
+/// `LicenseShots` can draw it.
+struct LicensedRow: View {
+    let summary: String
+    let isWorking: Bool
+    let deactivate: () -> Void
+
+    var body: some View {
+        HStack {
+            Label(summary, systemImage: "checkmark.seal.fill")
+                .labelStyle(SeaIconLabelStyle())
+            Spacer()
+            if isWorking {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            Button("Deactivate This Mac…", action: deactivate)
+                .disabled(isWorking)
         }
     }
 }
