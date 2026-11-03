@@ -169,12 +169,16 @@ enum LicenseShots {
             let hosting = NSHostingView(rootView: root)
             hosting.frame = NSRect(origin: .zero, size: size)
             hosting.appearance = appearance
-            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10_000, y: -10_000), size: size),
+            // A key window in an active app, so prominent buttons draw in the accent colour as they do on screen.
+            NSApplication.shared.setActivationPolicy(.accessory)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            let window = KeyableWindow(contentRect: NSRect(origin: NSPoint(x: -10_000, y: -10_000), size: size),
                                   styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.appearance = appearance
             window.contentView = hosting
             window.orderFrontRegardless()
+            window.makeKey()
             // Give SwiftUI a moment to lay out and attach its AppKit controls.
             RunLoop.main.run(until: Date().addingTimeInterval(0.3))
             hosting.layoutSubtreeIfNeeded()
@@ -197,5 +201,10 @@ enum LicenseShots {
         guard let png else { throw ShotError.png }
         try png.write(to: url)
     }
+}
+/// Borderless windows can't become key by default; the screenshots need a key window.
+private final class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
 #endif
