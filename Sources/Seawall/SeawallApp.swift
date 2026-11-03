@@ -1,7 +1,7 @@
 import SeawallCore
 import SwiftUI
 
-@main
+/// Started by `SeawallMain` (SeawallMain.swift), not `@main` itself.
 struct SeawallApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 

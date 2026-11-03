@@ -11,7 +11,6 @@ struct WelcomeView: View {
     @ObservedObject private var preferences = Preferences.shared
     @ObservedObject private var license = WelcomeLicense.shared
     @State private var key = ""
-    @State private var hasKey = false
     @State private var step = Welcome.Step.pick
     /// Tiles that were on when the welcome opened (or last saved), and the ones ticked now.
     /// Only the difference is written to the list.
@@ -27,35 +26,17 @@ struct WelcomeView: View {
     @State private var notificationsPending = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                Color.primary.opacity(0.04)
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 56, height: 56)
-                    .padding(.leading, 26)
-                    .padding(.bottom, 14)
+        WelcomeLayout {
+            switch step {
+            case .pick: pick
+            case .browsers: browsers
+            case .leaving: leaving
+            case .license: licenseStep
+            case .start: start
             }
-            .frame(height: 96)
-
-            Group {
-                switch step {
-                case .pick: pick
-                case .browsers: browsers
-                case .leaving: leaving
-                case .license: licenseStep
-                case .start: start
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 28)
-            .padding(.top, Space.l)
-
+        } footer: {
             footer
-                .padding(.horizontal, 28)
-                .padding(.vertical, Space.l)
         }
-        .frame(width: 560, height: 640)
         .onAppear {
             controller.refreshBrowserAccess()
             openAtLogin = LoginItem.shared.isOn || !LoginItem.shared.hasBeenChosen
@@ -85,15 +66,7 @@ struct WelcomeView: View {
 
     private var footer: some View {
         HStack(spacing: Space.s) {
-            HStack(spacing: 6) {
-                ForEach(shownSteps, id: \.self) { index in
-                    Circle()
-                        .fill(index == step ? Color.primary : Color.primary.opacity(0.2))
-                        .frame(width: 6, height: 6)
-                }
-            }
-            .accessibilityElement()
-            .accessibilityLabel("Step \((shownSteps.firstIndex(of: step) ?? 0) + 1) of \(shownSteps.count)")
+            WelcomeStepDots(count: shownSteps.count, current: shownSteps.firstIndex(of: step) ?? 0)
             Spacer()
             if let previous = step.previous(showsLicense: license.isAvailable) {
                 Button("Back") { step = previous }
@@ -276,50 +249,10 @@ struct WelcomeView: View {
     // MARK: - 4. Activate (only when this build has licensing)
 
     private var licenseStep: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
-            Text("Activate Seawall")
-                .font(.title.weight(.semibold))
-            if license.isLicensed {
-                Label("Seawall is activated on this Mac.", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(Color.sea)
-                Text("Next, start your first block.")
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Seawall is \(WelcomeLicense.price), once, for up to 3 Macs. Not for you? Get a refund within 14 days, no questions asked.")
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Your lists are saved either way. Starting a block needs a license key.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: Space.s) {
-                    Button("Buy for \(WelcomeLicense.price)") { NSWorkspace.shared.open(WelcomeLicense.buyURL) }
-                        .buttonStyle(.borderedProminent)
-                        .help(WelcomeLicense.buyURL.absoluteString)
-                    Button("I already have a key") { hasKey = true }
-                        .disabled(hasKey)
-                }
-                if hasKey {
-                    HStack(spacing: Space.s) {
-                        TextField("License key", text: $key, prompt: Text("Paste the key from your purchase email"))
-                            .autocorrectionDisabled()
-                            .onSubmit(activate)
-                            .disabled(license.isWorking)
-                        if license.isWorking {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                        Button("Activate", action: activate)
-                            .disabled(license.isWorking || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-                if let failure = license.failure {
-                    Text(failure)
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
+        WelcomeLicenseStep(key: $key, isWorking: license.isWorking, failure: license.failure,
+                           isLicensed: license.isLicensed,
+                           buy: { NSWorkspace.shared.open(WelcomeLicense.buyURL) },
+                           activate: activate)
     }
 
     private func activate() {
@@ -455,5 +388,93 @@ struct WelcomeView: View {
         controller.mutateList(id) { Starter.apply(from: before, to: after, offered: items, to: &$0) }
         controller.config.next.listID = id
         saved = after
+    }
+}
+
+// MARK: - Shared parts
+
+/// The welcome window: the app icon on a light band, the step, and the footer.
+struct WelcomeLayout<Content: View, Footer: View>: View {
+    private let content: Content
+    private let footer: Footer
+
+    init(@ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
+        self.content = content()
+        self.footer = footer()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                Color.primary.opacity(0.04)
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+                    .padding(.leading, 26)
+                    .padding(.bottom, 14)
+            }
+            .frame(height: 96)
+
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, 28)
+                .padding(.top, Space.l)
+
+            footer
+                .padding(.horizontal, 28)
+                .padding(.vertical, Space.l)
+        }
+        .frame(width: 560, height: 640)
+    }
+}
+
+/// Which step of the welcome this is, as dots.
+struct WelcomeStepDots: View {
+    let count: Int
+    let current: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<count, id: \.self) { index in
+                Circle()
+                    .fill(index == current ? Color.primary : Color.primary.opacity(0.2))
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Step \(current + 1) of \(count)")
+    }
+}
+
+/// 4. Activate Seawall: the price, Buy, and a key field, or that it's activated. Values and
+/// closures only, so `LicenseShots` can draw it in any state.
+struct WelcomeLicenseStep: View {
+    @Binding var key: String
+    let isWorking: Bool
+    let failure: String?
+    let isLicensed: Bool
+    let buy: () -> Void
+    let activate: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.m) {
+            Text("Activate Seawall")
+                .font(.title.weight(.semibold))
+            Text(isLicensed
+                 ? "Thanks for supporting Seawall. Blocks can start on this Mac now."
+                 : "Seawall is a one-time purchase. Setup works without a key and your lists are kept either way; starting a block needs one.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LicenseActivationForm(layout: .card, key: $key, price: WelcomeLicense.price,
+                                  buyURL: WelcomeLicense.buyURL, isWorking: isWorking, failure: failure,
+                                  isLicensed: isLicensed, successDetail: "Next, start your first block.",
+                                  buy: buy, activate: activate)
+            if !isLicensed {
+                Text("Buying opens seawall.work in your browser, and your key arrives by email. Come back here and paste it in.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

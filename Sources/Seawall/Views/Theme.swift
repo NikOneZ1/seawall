@@ -195,6 +195,17 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+/// The label's icon in Seawall's teal, its text in the usual colour.
+struct SeaIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: Space.s) {
+            configuration.icon
+                .foregroundStyle(Color.sea)
+            configuration.title
+        }
+    }
+}
+
 // MARK: - Lists
 
 /// A list's mark: its symbol on its colour.
