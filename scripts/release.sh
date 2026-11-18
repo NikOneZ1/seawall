@@ -52,21 +52,10 @@ ZIP="$UPDATES/Seawall-$VERSION.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 
-# For the website: a disk image with the app and a shortcut to Applications.
-DMG="$DIST/Seawall-$VERSION.dmg"
-STAGE="$(mktemp -d)"
-ditto "$APP" "$STAGE/Seawall.app"
-ln -s /Applications "$STAGE/Applications"
-rm -f "$DMG"
-hdiutil create -volname "Seawall" -srcfolder "$STAGE" -format UDZO -ov "$DMG" >/dev/null
-rm -rf "$STAGE"
-if [[ -n "${SIGN_IDENTITY:-}" ]]; then
-    codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG"
-    if [[ -n "${NOTARY_PROFILE:-}" ]]; then
-        xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
-        xcrun stapler staple "$DMG"
-    fi
-fi
+# For the website: an installer-style disk image (app + Applications, Retina background).
+# scripts/make-dmg.sh does not rebuild or re-sign the app. It signs, notarizes and staples
+# the DMG when SIGN_IDENTITY and NOTARY_PROFILE are set, and also writes dist/Seawall.dmg.
+./scripts/make-dmg.sh "$APP"
 
 if [[ -n "${DOWNLOAD_URL_PREFIX:-}" && -n "${SPARKLE_FEED_URL:-}" ]]; then
     "$SPARKLE_BIN/generate_appcast" --account com.nikitaverba.Seawall --download-url-prefix "$DOWNLOAD_URL_PREFIX" -o "$DIST/appcast.xml" "$UPDATES"
