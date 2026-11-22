@@ -34,7 +34,7 @@ List colours (`ListColor`): sea, coral, violet, amber, leaf, sky, rose, slate, e
 
 ## The blocked page
 
-One self-contained HTML document, flat, following the system's light or dark mode. Its own small palette is defined in CSS custom properties: `--accent` `#1B7586` light, `#5FB7C6` dark. Three activities (Breathe, What brought you here, Stack), picked in Settings, Random by default.
+One self-contained HTML document, flat, following the system's light or dark mode. It's in the Timetable look (2026-11): white paper, black rules, square corners, Barlow for reading and Barlow Semi Condensed for headings and times, embedded from `BlockedPageFonts.swift` so the page needs no network. It leads with the time the site opens again, huge and in red; red (`--time` `#D93026` light, `#FF5A4F` dark) means a time and is used for nothing else. Buttons are ink (`--ink` `#161616` light, `#F2F2F0` dark). Below the time, ruled rows say what's left, which try this is, and the activity's own count. Three activities (Breathe, What brought you here, Stack), picked in Settings, Random by default.
 
 Never use `position: fixed`: Safari 26 draws empty glass bars at the top and bottom of the window for it. A test checks this.
 

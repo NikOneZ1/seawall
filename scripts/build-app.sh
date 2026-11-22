@@ -27,6 +27,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Framewor
 cp "$BIN_DIR/Seawall" "$APP/Contents/MacOS/Seawall"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# The blocked page embeds Barlow; its license travels with the app.
+cp Resources/Fonts/Barlow-OFL.txt "$APP/Contents/Resources/Barlow-OFL.txt"
 # ditto keeps the framework's symlinks, which codesign insists on.
 ditto "$BIN_DIR/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 

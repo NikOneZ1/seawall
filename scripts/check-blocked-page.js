@@ -12,13 +12,13 @@ function load(search) {
   const el = id => (els[id] ??= { id, textContent: '', innerHTML: '', hidden: false });
   const sandbox = {
     location: { search },
-    document: { getElementById: el, querySelectorAll: () => [], title: '' },
+    document: { getElementById: el, querySelectorAll: () => [], title: '', body: { classList: { toggle() {} } } },
     matchMedia: () => ({ matches: false }),
     localStorage: { getItem: () => null, setItem() {} },
   };
   const SW = new Function(...Object.keys(sandbox), shellJS + '\nreturn SW;')(...Object.values(sandbox));
   SW.render();
-  return { SW, foot: el('foot').innerHTML };
+  return { SW, rows: el('rows').innerHTML, host: el('host').textContent, time: el('time').textContent };
 }
 
 let failed = 0;
@@ -32,24 +32,35 @@ const ordinals = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', 11: '11th', 12: '12th
   101: '101st', 111: '111th', 112: '112th', 113: '113th', 23: '23rd', 100: '100th', 1011: '1011th', 1021: '1021st' };
 for (const [n, want] of Object.entries(ordinals)) check(`ord(${n}) == ${want}`, () => assert.strictEqual(SW.ord(+n), want));
 
-check('n=3 shows "3rd try this block"', () => {
-  const { SW, foot } = load(`?until=${until}&n=3&url=x`);
+check('n=3 shows a "3rd try" row', () => {
+  const { SW, rows } = load(`?until=${until}&n=3&url=x`);
   assert.strictEqual(SW.tries, 3);
-  assert.ok(foot.includes('<span>3rd try this block</span>'), foot);
+  assert.ok(rows.includes('<div><dt>This block</dt><dd>3rd try</dd></div>'), rows);
 });
 check('n=21 without until shows only the count', () =>
-  assert.strictEqual(load('?n=21&url=x').foot, '<span>21st try this block</span>'));
+  assert.strictEqual(load('?n=21&url=x').rows, '<div><dt>This block</dt><dd>21st try</dd></div>'));
 
 for (const q of ['', 'n=', 'n=%20', 'n=abc', 'n=0', 'n=-2', 'n=3.5', 'n=1e2', 'n=0x10', 'n=99999999999999999999']) {
   check(`"?${q}" shows no count`, () => {
-    const { SW, foot } = load(`?until=${until}&${q}&url=x`);
+    const { SW, rows } = load(`?until=${until}&${q}&url=x`);
     assert.strictEqual(SW.tries, 0);
-    assert.ok(!foot.includes('try'), foot);
-    // Only the time left remains: no empty span, no dangling separator.
-    assert.match(foot, /^<span>[^<]+ left<\/span>$/);
+    assert.ok(!rows.includes('try'), rows);
+    // Only the time left remains: one row, nothing empty.
+    assert.match(rows, /^<div><dt>Left<\/dt><dd>[^<]+<\/dd><\/div>$/);
   });
 }
-check('no until and no n leaves the footer empty', () => assert.strictEqual(load('?url=x').foot, ''));
+check('no until and no n leaves the rows empty', () => assert.strictEqual(load('?url=x').rows, ''));
+
+check('the page leads with the reopening time', () => {
+  const { host, time } = load(`?until=${until}&url=https://www.youtube.com/shorts/abc`);
+  assert.match(host, /^youtube\.com opens again (tomorrow )?at$/);
+  assert.match(time, /^\d\d:\d\d$/);
+});
+check('without until it just says closed', () => {
+  const { host, time } = load('?url=https://reddit.com/');
+  assert.strictEqual(host, 'reddit.com is closed');
+  assert.strictEqual(time, 'Closed');
+});
 
 console.log(failed ? `\n${failed} failed` : '\nall passed');
 process.exit(failed ? 1 : 0);

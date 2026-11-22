@@ -1,43 +1,53 @@
 import Foundation
 
-/// The pieces the blocked-site pages are put together from: one shell (header, footer, the
-/// block-is-over state, the clock) and three small concepts. Generated from flat HTML/CSS/JS;
+/// The pieces the blocked-site pages are put together from: one shell (header, the reopening time
+/// and its rows, the block-is-over state, the clock) and three small concepts. Generated from flat HTML/CSS/JS;
 /// no external files, no fixed positioning, no WebGL.
 enum BlockedPageParts {
     static let icon = ##"""
-<svg class="mark" viewBox="100 100 824 824" aria-hidden="true"><defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38A6B6"/><stop offset="1" stop-color="#1B7586"/></linearGradient><clipPath id="blk"><rect x="262" y="262" width="500" height="500" rx="130"/></clipPath></defs><rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/><rect x="262" y="262" width="500" height="500" rx="130" fill="#fff"/><path d="M250 557 L258 563 L266 568 L274 572 L282 576 L290 580 L298 582 L306 583 L314 583 L322 582 L330 580 L338 576 L346 572 L354 568 L362 563 L370 557 L378 552 L386 546 L394 541 L402 536 L410 533 L418 530 L426 528 L434 527 L442 527 L450 529 L458 531 L466 534 L474 539 L482 543 L490 549 L498 554 L506 560 L514 565 L522 570 L530 575 L538 578 L546 581 L554 582 L562 583 L570 582 L578 581 L586 578 L594 575 L602 570 L610 565 L618 560 L626 554 L634 549 L642 543 L650 539 L658 534 L666 531 L674 529 L682 527 L690 527 L698 528 L706 530 L714 533 L722 536 L730 541 L738 546 L746 552 L754 557 L762 563 L770 568 L772 780 L250 780Z" fill="#BDE4EB" clip-path="url(#blk)"/><path d="M250 653 L258 649 L266 645 L274 640 L282 635 L290 629 L298 624 L306 619 L314 615 L322 611 L330 608 L338 606 L346 604 L354 604 L362 605 L370 607 L378 609 L386 613 L394 617 L402 622 L410 627 L418 632 L426 637 L434 642 L442 647 L450 651 L458 655 L466 657 L474 659 L482 660 L490 660 L498 658 L506 656 L514 653 L522 649 L530 645 L538 640 L546 635 L554 629 L562 624 L570 619 L578 615 L586 611 L594 608 L602 606 L610 604 L618 604 L626 605 L634 607 L642 609 L650 613 L658 617 L666 622 L674 627 L682 632 L690 637 L698 642 L706 647 L714 651 L722 655 L730 657 L738 659 L746 660 L754 660 L762 658 L770 656 L772 780 L250 780Z" fill="#5FB7C6" clip-path="url(#blk)"/></svg>
+<svg class="mark" viewBox="100 100 824 824" aria-hidden="true"><defs><clipPath id="blk"><rect x="262" y="262" width="500" height="500" rx="130"/></clipPath></defs><rect x="100" y="100" width="824" height="824" rx="185" fill="#E2382F"/><rect x="262" y="262" width="500" height="500" rx="130" fill="#fff"/><path d="M250 557 L258 563 L266 568 L274 572 L282 576 L290 580 L298 582 L306 583 L314 583 L322 582 L330 580 L338 576 L346 572 L354 568 L362 563 L370 557 L378 552 L386 546 L394 541 L402 536 L410 533 L418 530 L426 528 L434 527 L442 527 L450 529 L458 531 L466 534 L474 539 L482 543 L490 549 L498 554 L506 560 L514 565 L522 570 L530 575 L538 578 L546 581 L554 582 L562 583 L570 582 L578 581 L586 578 L594 575 L602 570 L610 565 L618 560 L626 554 L634 549 L642 543 L650 539 L658 534 L666 531 L674 529 L682 527 L690 527 L698 528 L706 530 L714 533 L722 536 L730 541 L738 546 L746 552 L754 557 L762 563 L770 568 L772 780 L250 780Z" fill="#C9CCCE" clip-path="url(#blk)"/><path d="M250 653 L258 649 L266 645 L274 640 L282 635 L290 629 L298 624 L306 619 L314 615 L322 611 L330 608 L338 606 L346 604 L354 604 L362 605 L370 607 L378 609 L386 613 L394 617 L402 622 L410 627 L418 632 L426 637 L434 642 L442 647 L450 651 L458 655 L466 657 L474 659 L482 660 L490 660 L498 658 L506 656 L514 653 L522 649 L530 645 L538 640 L546 635 L554 629 L562 624 L570 619 L578 615 L586 611 L594 608 L602 606 L610 604 L618 604 L626 605 L634 607 L642 609 L650 613 L658 617 L666 622 L674 627 L682 632 L690 637 L698 642 L706 647 L714 651 L722 655 L730 657 L738 659 L746 660 L754 660 L762 658 L770 656 L772 780 L250 780Z" fill="#161616" clip-path="url(#blk)"/></svg>
 """##
     static let shellCSS = ##"""
-:root{color-scheme:light dark;--bg:#F3F8F9;--surface:#FFFFFF;--ink:#0E3A44;--muted:#4A6D76;--line:#D3E6EA;--chip:#E5F1F4;--accent:#1B7586;--on-accent:#FFFFFF;--accent-soft:#D5ECF1;--mid:#5FB7C6;--light:#BDE4EB;
---sf:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Helvetica Neue",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace}
-@media (prefers-color-scheme:dark){:root{--bg:#0B1B20;--surface:#12282E;--ink:#E8F4F6;--muted:#97BBC3;--line:#1E3D45;--chip:#17323A;--accent:#5FB7C6;--on-accent:#0A2830;--accent-soft:#1B3F49}}
+:root{color-scheme:light dark;--bg:#FFFFFF;--ink:#161616;--muted:#686C70;--rule:#161616;--soft:#E4E4E2;--chip:#F4F4F2;--time:#D93026;--on-ink:#FFFFFF;
+--font:"Barlow",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;--cond:"Barlow Semi Condensed","Barlow",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--ink:#F2F2F0;--muted:#A3A7AB;--rule:#F2F2F0;--soft:#2E2E2E;--chip:#202020;--time:#FF5A4F;--on-ink:#141414}}
 *{box-sizing:border-box}
 html{background:var(--bg);margin:0}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.45 var(--sf);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:17px/1.45 var(--font);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;display:flex;flex-direction:column}
+::selection{background:var(--ink);color:var(--bg)}
 [hidden]{display:none!important}
-.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:22px 32px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:650;font-size:15px;letter-spacing:-.01em}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:16px;margin:0 48px;padding-top:24px;border-bottom:2px solid var(--rule)}
+.brand{display:flex;align-items:center;gap:10px;font:700 20px/1 var(--cond);padding-bottom:12px}
 .mark{width:28px;height:28px;display:block}
-.pill{justify-self:end;font-size:13px;color:var(--muted);background:var(--chip);border-radius:999px;padding:6px 14px}
-.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px}
-.seg button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--muted)}
-.seg button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
-@media (max-width:760px){.top{grid-template-columns:1fr;justify-items:start}.pill{justify-self:start}}
-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px}
+.seg{display:flex;gap:28px}
+.seg button{border:0;background:none;padding:0 0 12px;font:600 16px/1 var(--font);color:var(--muted)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-selected=true]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--ink)}
+main{flex:1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:72px;align-items:center;width:100%;max-width:1320px;margin:0 auto;padding:40px 48px 56px}
+.when{min-width:0}
+.when .host{margin:0;font-size:22px;overflow-wrap:anywhere}
+.when .time{margin:10px 0 0;font:700 clamp(112px,16vw,240px)/.84 var(--cond);letter-spacing:-.03em;color:var(--time);white-space:nowrap}
+.when .time.word{font-size:clamp(80px,10vw,150px)}
+.rows{margin:36px 0 0;max-width:520px}
+.rows div{display:grid;grid-template-columns:130px 1fr;gap:12px;padding:12px 0;border-top:1px solid var(--rule)}
+.rows div:last-child{border-bottom:1px solid var(--rule)}
+.rows dt{color:var(--muted)}
+.rows dd{margin:0;font-weight:600}
+.act{display:flex;flex-direction:column;align-items:center;min-width:0}
+body.is-over main{grid-template-columns:1fr}
+body.is-over .when{display:none}
 .c{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
-.foot{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:20px 32px 26px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:62px}
-.foot i{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.6}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,a:focus-visible,input:focus-visible,canvas:focus-visible{outline:3px solid var(--mid);outline-offset:3px}
-.btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:999px;padding:13px 26px;font-weight:600;font-size:16px}
-.btn:hover{filter:brightness(1.06)}
-.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
-.btn.ghost:hover{background:var(--chip)}
-.btn[disabled]{background:var(--chip);color:var(--muted);cursor:default;filter:none}
-.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
-h1{margin:0;font-size:clamp(30px,4.2vw,52px);line-height:1.08;letter-spacing:-.03em;font-weight:700}
-p.sub{margin:12px 0 0;color:var(--muted);font-size:18px;max-width:34em}
-a.open{display:inline-block;margin-top:22px;text-decoration:none}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.btn{background:var(--ink);color:var(--on-ink);border:0;border-radius:4px;padding:15px 22px;font:600 17px/1 var(--font)}
+.btn:hover{opacity:.86}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.btn.ghost:hover{background:var(--chip);opacity:1}
+.btn[disabled]{background:var(--chip);color:var(--muted);box-shadow:none;cursor:default;opacity:1}
+h1{margin:0;font:700 clamp(30px,3.4vw,44px)/1.05 var(--cond);letter-spacing:-.01em}
+p.sub{margin:12px 0 0;color:var(--muted);font-size:18px;max-width:30em}
+a.open{display:inline-block;margin-top:24px;text-decoration:none}
+@media (max-width:900px){.top{margin:0 20px;grid-template-columns:1fr;justify-items:start}.top>span:empty{display:none}.seg{gap:20px;max-width:100%;overflow-x:auto}main{grid-template-columns:1fr;gap:44px;padding:28px 20px 44px}.rows div{grid-template-columns:110px 1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """##
     static let shellJS = ##"""
@@ -53,22 +63,27 @@ const SW=(()=>{
   const left=()=>until?Math.max(0,Math.ceil((until-Date.now())/1000)):0;
   const hms=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return h?`${h}:${pad(m)}:${pad(x)}`:`${m}:${pad(x)}`};
   const short=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h}h ${pad(m)}m`:`${m}m`};
-  function endLabel(){
-    const e=new Date(until),t=pad(e.getHours())+':'+pad(e.getMinutes()),tom=new Date();tom.setDate(tom.getDate()+1);
-    if(e.toDateString()===new Date().toDateString())return t;
-    if(e.toDateString()===tom.toDateString())return 'tomorrow, '+t;
-    return e.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+t;
+  // When the block ends: today is just the time, tomorrow and later days say so before "at".
+  function endParts(){
+    const e=new Date(until),time=pad(e.getHours())+':'+pad(e.getMinutes()),tom=new Date();tom.setDate(tom.getDate()+1);
+    if(e.toDateString()===new Date().toDateString())return {day:'',time};
+    if(e.toDateString()===tom.toDateString())return {day:'tomorrow',time};
+    return {day:'on '+e.toLocaleDateString('en-US',{month:'short',day:'numeric'}),time};
   }
+  const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
   const store=ns=>({get(k,d){try{const v=localStorage.getItem('sw.'+ns+'.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('sw.'+ns+'.'+k,JSON.stringify(v))}catch(e){}}});
   const $=id=>document.getElementById(id);
   const concepts={},stats={};let current=null;
   const render=()=>{
     const over=until&&left()===0;
     document.title=over?'Block is over':'Blocked';
-    $('pill').textContent=over?'Block is over':until?`${host} is closed until ${endLabel()}`:`${host} is closed`;
-    const parts=[];
-    if(!over){if(until)parts.push(`<span>${short(left())} left</span>`);if(tries)parts.push(`<span>${ord(tries)} try this block</span>`);if(current&&stats[current])parts.push(`<span>${stats[current]}</span>`)}
-    $('foot').innerHTML=parts.join('<i></i>');
+    if(document.body)document.body.classList.toggle('is-over',!!over);
+    const end=until?endParts():null,time=$('time');
+    $('host').textContent=end?`${host} opens again ${end.day?end.day+' ':''}at`:`${host} is closed`;
+    time.textContent=end?end.time:'Closed';time.className=end?'time':'time word';
+    const rows=[];
+    if(!over){if(until)rows.push(['Left',short(left())]);if(tries)rows.push(['This block',`${ord(tries)} try`]);if(current&&stats[current])rows.push(stats[current])}
+    $('rows').innerHTML=rows.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
     $('over').hidden=!over;
     document.querySelectorAll('.c').forEach(c=>{if(c.id==='over')return;if(over)c.hidden=true;else c.hidden=c.dataset.name!==current});
     const sw=$('seg');if(sw)sw.hidden=!!over;
@@ -84,9 +99,10 @@ const SW=(()=>{
     reduce:matchMedia('(prefers-reduced-motion: reduce)').matches,
     today:new Date().toDateString(),
     register(name,api){concepts[name]=api},
-    setStat(name,text){stats[name]=text;if(current===name)render()},
+    // A concept's own counter, as [label, value], shown as a row; null hides it.
+    setStat(name,row){stats[name]=row;if(current===name)render()},
     boot(){
-      const names=[...document.querySelectorAll('.c')].map(c=>c.dataset.name);
+      const names=[...document.querySelectorAll('.c:not(#over)')].map(c=>c.dataset.name);
       const seg=$('seg');
       if(seg){
         const mem=store('page'),last=mem.get('tab',names[0]);
@@ -103,21 +119,20 @@ const SW=(()=>{
 })();
 """##
     static let breatheCSS = ##"""
-.c-breathe .stage{position:relative;width:320px;height:320px;margin:26px 0 22px;display:grid;place-items:center}
-.c-breathe .guide{position:absolute;inset:0;border-radius:50%;border:2px dashed var(--line)}
-.c-breathe .orb{position:absolute;border-radius:50%;transform:scale(.52);will-change:transform}
-.c-breathe .outer{inset:0;background:var(--light)}
-.c-breathe .inner{inset:60px;background:var(--mid)}
-@media (prefers-color-scheme:dark){.c-breathe .outer{background:#1E4852}.c-breathe .inner{background:#3C8E9C}}
-.c-breathe .cue{position:relative;font-weight:650;font-size:22px;letter-spacing:-.01em;z-index:1}
-.c-breathe .actions{display:flex;gap:12px;min-height:50px}
+.c-breathe .stage{position:relative;width:300px;height:300px;margin:30px 0 28px;display:grid;place-items:center}
+.c-breathe svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.c-breathe .track{fill:none;stroke:var(--soft);stroke-width:8}
+.c-breathe .arc{fill:none;stroke:var(--time);stroke-width:8}
+.c-breathe .cue{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.c-breathe .cue b{font:700 32px/1 var(--cond)}
+.c-breathe .cue span{font:600 24px/1 var(--cond);color:var(--time);min-height:24px}
+.c-breathe .actions{display:flex;gap:12px;min-height:48px}
 .c-breathe .sub{min-height:1.4em}
 """##
     static let breatheBody = ##"""
 <section class="c c-breathe" id="c-breathe" data-name="breathe">
-  <p class="eyebrow">Take a moment</p>
   <h1 id="b-title">Let’s take one breath first.</h1>
-  <div class="stage" aria-live="polite"><div class="guide"></div><div class="orb outer" id="b-outer"></div><div class="orb inner" id="b-inner"></div><div class="cue" id="b-cue">Ready when you are</div></div>
+  <div class="stage" aria-live="polite"><svg viewBox="0 0 300 300" aria-hidden="true"><circle class="track" cx="150" cy="150" r="144"/><circle class="arc" id="b-arc" cx="150" cy="150" r="144" pathLength="100" stroke-dasharray="0 100"/></svg><div class="cue"><b id="b-cue">Ready when you are</b><span id="b-secs"></span></div></div>
   <div class="actions" id="b-actions"></div>
   <p class="sub" id="b-after" hidden></p>
 </section>
@@ -129,16 +144,17 @@ const SW=(()=>{
   const IN=4000,HOLD=1000,OUT=6000,MIN=.52,ease=t=>(1-Math.cos(Math.PI*t))/2;
   const scaleAt=ms=>ms<IN?MIN+(1-MIN)*ease(ms/IN):ms<IN+HOLD?1:1-(1-MIN)*ease(Math.min(1,(ms-IN-HOLD)/OUT));
   const phase=ms=>ms<IN?'Breathe in':ms<IN+HOLD?'Hold':'Breathe out';
-  const paint=s=>{$('b-outer').style.transform=`scale(${s})`;$('b-inner').style.transform=`scale(${s})`};
-  const stat=()=>SW.setStat('breathe',breaths?`Breaths today: ${breaths}`:'');
+  const paint=s=>$('b-arc').setAttribute('stroke-dasharray',`${((s-MIN)/(1-MIN)*100).toFixed(2)} 100`);
+  const secs=ms=>ms<IN?Math.ceil((IN-ms)/1000):ms<IN+HOLD?0:Math.ceil((IN+HOLD+OUT-ms)/1000);
+  const stat=()=>SW.setStat('breathe',breaths?['Breaths today',breaths]:null);
   function actions(html,wire){$('b-actions').innerHTML=html;wire&&wire()}
   function idle(){
-    cancelAnimationFrame(raf);paint(MIN);$('b-cue').textContent='Ready when you are';
+    cancelAnimationFrame(raf);paint(MIN);$('b-cue').textContent='Ready when you are';$('b-secs').textContent='';
     $('b-title').textContent='Let’s take one breath first.';$('b-after').hidden=true;
     actions('<button class="btn" id="b-go">Start one breath</button>',()=>$('b-go').onclick=start);
   }
   function start(){
-    $('b-after').hidden=true;$('b-title').textContent='Follow the circle.';
+    $('b-after').hidden=true;$('b-title').textContent='Follow the ring.';
     actions('<button class="btn" disabled>Breathing…</button>');
     const t0=performance.now();let last='';
     (function tick(now){
@@ -147,11 +163,12 @@ const SW=(()=>{
       const p=phase(ms);
       paint(SW.reduce?(p==='Breathe out'?MIN:1):scaleAt(ms));
       if(p!==last){$('b-cue').textContent=p;last=p}
+      const n=secs(ms);$('b-secs').textContent=n?'0:0'+n:'';
       raf=requestAnimationFrame(tick);
     })(t0);
   }
   function done(){
-    breaths++;st.set(KEY,breaths);stat();paint(MIN);$('b-cue').textContent='Done';
+    breaths++;st.set(KEY,breaths);stat();paint(MIN);$('b-cue').textContent='Done';$('b-secs').textContent='';
     $('b-title').textContent='That was one breath.';
     const a=$('b-after');a.hidden=false;a.textContent='Urges tend to ease within a minute or so. Another breath, or back to what you were doing?';
     actions('<button class="btn" id="b-again">Another breath</button><button class="btn ghost" id="b-fine">I’m good</button>',()=>{
@@ -163,21 +180,20 @@ const SW=(()=>{
 })();
 """##
     static let whyCSS = ##"""
-.c-why .chips{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:720px;margin-top:32px}
-.c-why .chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:14px 22px;border-radius:999px;font-size:17px;font-weight:550}
+.c-why .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px;margin-top:28px}
+.c-why .chip{border:0;box-shadow:inset 0 0 0 1.5px var(--ink);background:transparent;color:var(--ink);padding:13px 18px;border-radius:4px;font:600 17px/1 var(--font)}
 .c-why .chip:hover{background:var(--chip)}
-.c-why .chip[aria-pressed=true]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
-.c-why .card{display:grid;grid-template-columns:auto 1fr;gap:18px 22px;align-items:center;text-align:left;margin-top:30px;max-width:620px;width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:22px;padding:24px 26px}
-.c-why .ico{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);display:grid;place-items:center}
-.c-why .ico svg{width:30px;height:30px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.c-why .card h2{margin:0;font-size:20px;letter-spacing:-.01em}.c-why .card p{margin:4px 0 0;color:var(--muted)}
-.c-why .cta{grid-column:1/-1;display:flex;gap:12px;justify-content:flex-end}
-.c-why .thanks{margin:26px 0 0;font-size:20px;font-weight:600}
-.c-why .thanks small{display:block;font-weight:400;color:var(--muted);font-size:15px;margin-top:6px}
+.c-why .chip[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
+.c-why .card{display:grid;grid-template-columns:auto 1fr;gap:18px 20px;align-items:start;text-align:left;margin-top:28px;max-width:560px;width:100%;border-top:2px solid var(--rule);border-bottom:1px solid var(--rule);padding:22px 0}
+.c-why .ico{width:48px;height:48px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--ink);display:grid;place-items:center}
+.c-why .ico svg{width:26px;height:26px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.c-why .card h2{margin:0;font:700 24px/1.1 var(--cond)}.c-why .card p{margin:6px 0 0;color:var(--muted)}
+.c-why .cta{grid-column:1/-1;display:flex;gap:12px}
+.c-why .thanks{margin:26px 0 0;font:700 28px/1.15 var(--cond)}
+.c-why .thanks small{display:block;font:400 17px/1.45 var(--font);color:var(--muted);margin-top:8px}
 """##
     static let whyBody = ##"""
 <section class="c c-why" id="c-why" data-name="why">
-  <p class="eyebrow" id="w-eyebrow"></p>
   <h1 id="w-title">What brought you here?</h1>
   <p class="sub" id="w-lede">No wrong answer. Pick the closest one.</p>
   <div class="chips" id="w-chips"></div>
@@ -208,8 +224,7 @@ const SW=(()=>{
     ['I need it for work','mail','Check the plan first','If it is really needed, the Seawall menu can end a block early after a short wait.']];
   const WORK=5;
   let wins=st.get(KEY,0),pick=-1;
-  const chips=$('w-chips'),stat=()=>SW.setStat('why',wins?`Wins today: ${wins}`:'');
-  $('w-eyebrow').textContent=SW.tries?SW.host+' · '+SW.ord(SW.tries)+' try':SW.host;
+  const chips=$('w-chips'),stat=()=>SW.setStat('why',wins?['Wins today',wins]:null);
   WHY.forEach((w,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=w[0];b.setAttribute('aria-pressed','false');b.onclick=()=>choose(i);chips.appendChild(b)});
   function choose(i){
     pick=i;[...chips.children].forEach((c,j)=>c.setAttribute('aria-pressed',j===i));
@@ -234,17 +249,16 @@ const SW=(()=>{
 })();
 """##
     static let stackCSS = ##"""
-.c-stack .wrap{width:min(560px,92vw);margin:18px 0 14px}
-.c-stack canvas{width:100%;height:auto;display:block;background:var(--surface);border:1.5px solid var(--line);border-radius:22px;touch-action:manipulation;cursor:pointer}
-.c-stack .hud{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
-.c-stack .hud b{color:var(--ink)}
-.c-stack .bar{flex:1;height:6px;background:var(--chip);border-radius:3px;overflow:hidden}
-.c-stack .bar i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left}
-.c-stack .actions{min-height:50px}.c-stack .sub{font-size:16px;margin-top:10px}
+.c-stack .wrap{width:min(520px,100%);margin:22px 0 14px}
+.c-stack canvas{width:100%;height:auto;display:block;background:var(--bg);border:1.5px solid var(--ink);border-radius:4px;touch-action:manipulation;cursor:pointer}
+.c-stack .hud{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:15px;color:var(--muted)}
+.c-stack .hud b{color:var(--ink);font:700 20px/1 var(--cond)}
+.c-stack .bar{flex:1;height:4px;background:var(--soft);overflow:hidden}
+.c-stack .bar i{display:block;height:100%;width:100%;background:var(--time);transform-origin:left}
+.c-stack .actions{min-height:48px}.c-stack .sub{font-size:16px;margin-top:10px}
 """##
     static let stackBody = ##"""
 <section class="c c-stack" id="c-stack" data-name="stack">
-  <p class="eyebrow">30 seconds</p>
   <h1 id="s-title">Stack a few blocks instead.</h1>
   <div class="wrap"><canvas id="s-cv" width="560" height="360" role="img" aria-label="Block stacking game. Press Space or tap to drop the block."></canvas>
     <div class="hud"><span>Height <b id="s-score">0</b></span><span class="bar"><i id="s-bar"></i></span><span>Best <b id="s-best">0</b></span></div></div>
@@ -257,16 +271,16 @@ const SW=(()=>{
   const $=SW.$,st=SW.store('stack'),cv=$('s-cv'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,BH=30,BASE=180;
   const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const dark=()=>matchMedia('(prefers-color-scheme: dark)').matches;
-  const tones=()=>dark()?['#2C7F8D','#3A95A4','#4AA9B8','#5FB7C6']:['#1B7586','#2B93A3','#38A6B6','#5FB7C6'];
+  const tones=()=>dark()?['#F2F2F0','#C8CACC','#9EA1A4','#76797C']:['#161616','#45484B','#6E7175','#97999C'];
   let best=st.get('best',0),stack,cur,dir,speed,running=false,tEnd=0,score=0,raf=0;
-  const stat=()=>SW.setStat('stack',best?`Best stack: ${best}`:'');
+  const stat=()=>SW.setStat('stack',best?['Best stack',best]:null);
   $('s-best').textContent=best;
-  const rr=(x,y,w,h)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,7);else ctx.rect(x,y,w,h);ctx.fill()};
+  const rr=(x,y,w,h)=>{ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,2);else ctx.rect(x,y,w,h);ctx.fill()};
   function spawn(){const top=stack[stack.length-1];cur={x:0,w:top.w};dir=1;speed=2.2+Math.min(3.2,stack.length*.12)}
   function reset(){stack=[{x:(W-BASE)/2,w:BASE}];score=0;$('s-score').textContent=0;spawn()}
   function draw(){
     ctx.clearRect(0,0,W,H);const T=tones(),baseY=H-24,view=Math.max(0,(stack.length+1)*BH-(H-60));
-    ctx.fillStyle=css('--line');ctx.fillRect(0,baseY,W,2);
+    ctx.fillStyle=css('--rule');ctx.fillRect(0,baseY,W,2);
     stack.forEach((b,i)=>{ctx.fillStyle=T[i%4];rr(b.x,baseY-(i+1)*BH+view,b.w,BH-3)});
     if(running){ctx.fillStyle=T[stack.length%4];rr(cur.x,baseY-(stack.length+1)*BH+view,cur.w,BH-3)}
   }
