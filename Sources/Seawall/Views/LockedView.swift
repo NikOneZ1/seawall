@@ -360,7 +360,7 @@ private struct WaitPanel: View {
             ZStack {
                 Circle().stroke(Color.primary.opacity(0.12), lineWidth: 4)
                 Circle().trim(from: 0, to: 1 - remaining / wait)
-                    .stroke(Color.sea, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(Color.time, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Text(Format.countdown(remaining))
                     .font(.system(size: 10, weight: .semibold).monospacedDigit())

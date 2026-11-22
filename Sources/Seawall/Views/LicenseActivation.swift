@@ -163,7 +163,7 @@ struct LicenseActivationForm: View {
         HStack(alignment: .top, spacing: Space.m) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.title2)
-                .foregroundStyle(Color.sea)
+                .foregroundStyle(Color.ink)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Seawall is activated on this Mac.")

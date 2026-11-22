@@ -4,7 +4,7 @@ How Seawall looks, and the rules that keep it that way. What it is and who it's 
 
 ## The look
 
-A plain, standard Mac app in light and dark mode. No textures, no water, no glass of our own: the system draws the menu panel's material, and everything else is flat. Seawall's one colour is a teal, used for the thing you're about to do (Hold to lock, the picked list) and little else.
+A plain, standard Mac app in light and dark mode, in the Timetable look (chosen 2026-11-22): it reads like a ferry timetable, with black ink, white paper and red kept for times. No textures, no water, no glass of our own: the system draws the menu panel's material, and everything else is flat. Inside the menu, Seawall's brand shows in three places only: the icon, the ink of Hold to lock, and red on a time. Everything else is standard macOS and follows the user's own accent colour.
 
 The sea and its Metal water were removed on 2026-10-26. Don't bring back animated backgrounds or decorative effects; they cost energy and attention.
 
@@ -18,9 +18,12 @@ The sea and its Metal water were removed on 2026-10-26. Don't bring back animate
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `sea` | `#12707D` | `#66CCD6` | Accent text and outlines |
-| `seaFill` / `onSeaFill` | `#12707D` / white | `#5CBFC9` / `#052B30` | Filled buttons and their labels (white on the light teal measured under 2:1, hence the dark label) |
-| `holdProgress` | black 24% | white 32% | The fill moving across Hold to lock, always away from the label's colour |
+| `ink` / `onInk` | `#161616` / white | `#F2F2F0` / `#161616` | Hold to lock, the primary button, and the mark on a picked option |
+| `time` | `#D93026` | `#FF5A4F` | A time, and nothing else: the wait's ring, a block's end |
+| `holdProgress` | white 24% | black 18% | The fill moving across Hold to lock; the label stays at least 9:1 against it |
+| `sea` | the Sea list colour | | Drawing a list that has no colour of its own |
+
+The app icon keeps its shape (a tile, a wall, water held inside) in the Timetable colours: a red tile (`#EA4339` to `#D93026`), a white wall, grey and ink water. After editing `Resources/AppIcon.svg`, run `make icon` on a Mac to redraw `AppIcon.icns`.
 
 List colours (`ListColor`): sea, coral, violet, amber, leaf, sky, rose, slate, each with a light and a dark tuning. A list is always shown as its SF Symbol on its colour (`ListBadge`), never colour alone.
 
@@ -28,7 +31,7 @@ List colours (`ListColor`): sea, coral, violet, amber, leaf, sky, rose, slate, e
 
 - 320 pt wide, one surface. No full-width rules or bands; spacing separates the Today strip.
 - `calmEdges()` switches off macOS 26's scroll-edge glass, and `PanelFit` keeps the panel exactly as tall as its content when it swaps between Lock and Locked.
-- One prominent control: **Hold to lock** (`HoldButton`), 36 pt tall, a capsule. It takes a 0.8 s hold (mouse, Return or Space) and VoiceOver gets a plain "Lock" action. Reduce Motion turns the fill animation off. Disabled, it's a grey pill that says why ("Add something to lock"), not a faded teal.
+- One prominent control: **Hold to lock** (`HoldButton`), 36 pt tall, an ink capsule. It takes a 0.8 s hold (mouse, Return or Space) and VoiceOver gets a plain "Lock" action. Reduce Motion turns the fill animation off. Disabled, it's a grey pill that says why ("Add something to lock"), not faded ink.
 - Lists are cards, two to a row (`ListCard`), with the "+" card last.
 - Countdowns use `CountdownText`, with seconds a step quieter. Progress is a slim `ProgressBar`, one segment per round for blocks with breaks.
 

@@ -88,9 +88,9 @@ struct FocusSetup: View {
         HStack(alignment: .firstTextBaseline, spacing: Space.m) {
             Text("\(number)")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.onInk)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.sea))
+                .background(Circle().fill(Color.ink))
             VStack(alignment: .leading, spacing: Space.s) {
                 Text(text)
                     .fixedSize(horizontal: false, vertical: true)

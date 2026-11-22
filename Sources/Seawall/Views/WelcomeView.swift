@@ -136,7 +136,7 @@ struct WelcomeView: View {
                         if on {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(.white, Color.sea)
+                                .foregroundStyle(Color.onInk, Color.ink)
                                 .offset(x: 5, y: -5)
                         }
                     }
@@ -146,8 +146,8 @@ struct WelcomeView: View {
             }
             .padding(.horizontal, 9)
             .frame(height: 36)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Color.sea.opacity(0.15) : Color.primary.opacity(0.05)))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(on ? Color.sea : Color.primary.opacity(0.08)))
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Color.ink.opacity(0.08) : Color.primary.opacity(0.05)))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(on ? Color.ink : Color.primary.opacity(0.08)))
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -277,7 +277,7 @@ struct WelcomeView: View {
                 Text("Wi-Fi")
                 Image(nsImage: SlabGlyph.open)
                     .padding(5)
-                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.sea.opacity(0.25)))
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.15)))
                 Text("Tue 14:05")
             }
             .font(.headline)

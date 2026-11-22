@@ -21,18 +21,21 @@ extension Font {
 // MARK: - Colour
 
 extension Color {
-    /// Seawall's teal: deeper in light mode, lighter in dark mode.
-    static let sea = dynamic(light: (0.07, 0.44, 0.49), dark: (0.40, 0.80, 0.84))
-    /// The teal behind a filled button's label: white on deep teal in light mode, near-black
-    /// on lighter teal in dark mode. White on the light teal measured under 2:1.
-    static let seaFill = dynamic(light: (0.07, 0.44, 0.49), dark: (0.36, 0.75, 0.79))
-    static let onSeaFill = dynamic(light: (1, 1, 1), dark: (0.02, 0.17, 0.19))
-    /// A hold's progress across the filled button, moving away from the label's colour so the
-    /// label only gets easier to read: darker in light mode, lighter in dark mode.
+    /// Seawall's ink, from the Timetable look: the one prominent fill (Hold to lock, the primary
+    /// button) and the mark on a picked option. Near-black in light mode, near-white in dark mode.
+    static let ink = dynamic(light: (0.086, 0.086, 0.086), dark: (0.949, 0.949, 0.941))
+    /// The label on an ink fill: white in light mode, ink in dark mode.
+    static let onInk = dynamic(light: (1, 1, 1), dark: (0.086, 0.086, 0.086))
+    /// Red means a time and nothing else, as on the blocked page: the wait's ring, a block's end.
+    static let time = dynamic(light: (0.85, 0.19, 0.15), dark: (1.0, 0.35, 0.31))
+    /// The colour a list without one of its own is drawn in: the Sea list colour.
+    static let sea = ListColor.sea.color
+    /// A hold's progress across the ink button: a lighter grey in light mode, a darker one in
+    /// dark mode. The label stays at least 9:1 against it.
     static let holdProgress = Color(nsColor: NSColor(name: nil) { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(white: 1, alpha: 0.32)
-            : NSColor(white: 0, alpha: 0.24)
+            ? NSColor(white: 0, alpha: 0.18)
+            : NSColor(white: 1, alpha: 0.24)
     })
 
     private static func dynamic(light: (Double, Double, Double), dark: (Double, Double, Double)) -> Color {
@@ -92,9 +95,9 @@ struct HoldButton: View {
 
     var body: some View {
         let shape = Capsule()
-        // Off, it's a plain grey pill with a readable reason ("Add something to lock"), not faded teal.
-        let fill = isEnabled ? Color.seaFill : Color.primary.opacity(0.1)
-        let ink = isEnabled ? Color.onSeaFill : Color.secondary
+        // Off, it's a plain grey pill with a readable reason ("Add something to lock"), not faded ink.
+        let fill = isEnabled ? Color.ink : Color.primary.opacity(0.1)
+        let ink = isEnabled ? Color.onInk : Color.secondary
         ZStack(alignment: .leading) {
             shape.fill(fill)
             // The hold's progress, a soft fill moving across.
@@ -186,21 +189,21 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(Color.onSeaFill)
+            .foregroundStyle(Color.onInk)
             .padding(.horizontal, Space.m)
             .frame(height: 24)
-            .background(Capsule().fill(Color.seaFill)
+            .background(Capsule().fill(Color.ink)
                 .opacity(configuration.isPressed ? 0.8 : (isEnabled ? 1 : 0.4)))
             .contentShape(Capsule())
     }
 }
 
-/// The label's icon in Seawall's teal, its text in the usual colour.
+/// The label's icon in Seawall's ink, its text in the usual colour.
 struct SeaIconLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: Space.s) {
             configuration.icon
-                .foregroundStyle(Color.sea)
+                .foregroundStyle(Color.ink)
             configuration.title
         }
     }
