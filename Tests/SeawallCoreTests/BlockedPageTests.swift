@@ -66,7 +66,10 @@ struct BlockedPageTests {
 
     @Test func noPageUsesFixedPositioningOrWater() {
         for choice in BlockedPageChoice.allCases {
-            let page = BlockedPage.html(for: choice).lowercased()
+            // Drop the embedded fonts first: their base64 can spell anything, "webgl" included.
+            let page = BlockedPage.html(for: choice)
+                .replacingOccurrences(of: #"data:[^)"']*"#, with: "data:", options: .regularExpression)
+                .lowercased()
             let squeezed = page.filter { !$0.isWhitespace }
             #expect(!squeezed.contains("position:fixed"), "\(choice)")
             #expect(!squeezed.contains("position:sticky"), "\(choice)")
