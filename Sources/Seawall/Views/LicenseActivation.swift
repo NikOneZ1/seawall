@@ -96,7 +96,7 @@ struct LicenseActivationForm: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
     }
 
     /// Each view here is its own row in the surrounding `Form` section.
@@ -163,7 +163,7 @@ struct LicenseActivationForm: View {
         HStack(alignment: .top, spacing: Space.m) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.title2)
-                .foregroundStyle(Color.sea)
+                .foregroundStyle(Color.ink)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Seawall is activated on this Mac.")
@@ -184,9 +184,9 @@ private extension View {
     /// The one filled button, or a plain bordered one.
     @ViewBuilder func prominent(_ isProminent: Bool) -> some View {
         if isProminent {
-            buttonStyle(.borderedProminent)
+            buttonStyle(PrimaryButtonStyle())
         } else {
-            buttonStyle(.bordered)
+            buttonStyle(SoftButtonStyle())
         }
     }
 }

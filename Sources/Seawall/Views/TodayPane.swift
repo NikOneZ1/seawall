@@ -35,7 +35,7 @@ struct TodayPane: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Space.m)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
         .accessibilityElement(children: .combine)
     }
 
@@ -103,7 +103,7 @@ struct TodayPane: View {
                     }
                 }
                 .padding(.horizontal, Space.m)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
             }
         }
     }
@@ -133,7 +133,7 @@ struct TodayPane: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Space.s)
-                        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
                         .accessibilityElement(children: .combine)
                     }
                 }

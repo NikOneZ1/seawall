@@ -16,7 +16,8 @@ enum Panels {
             bringForward(window)
             return
         }
-        let host = NSHostingController(rootView: MainWindowView(model: main).environmentObject(controller))
+        // Standard Mac controls in the window, in ink rather than the system accent.
+        let host = NSHostingController(rootView: MainWindowView(model: main).environmentObject(controller).tint(Color.ink))
         // A real toolbar gives the title its own bar, so scrolled content passes under glass
         // instead of under the bare title.
         host.sceneBridgingOptions = [.title, .toolbars]

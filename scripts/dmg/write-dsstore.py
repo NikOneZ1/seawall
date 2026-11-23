@@ -7,7 +7,7 @@ reads volume attributes from the live filesystem. Called by scripts/make-dmg.sh.
   python3 scripts/dmg/write-dsstore.py /Volumes/Seawall
 
 The window content is 640x400; icon size 128; Seawall.app at (160, 186) and
-Applications at (480, 186). Keep these in sync with render-background.py.
+Applications at (480, 186). Keep these in sync with render-background.swift.
 The Finder window is 28pt taller than the background so the title bar doesn't
 crop it. WindowBounds uses QuickDraw coordinates (origin at the bottom left).
 """
@@ -19,7 +19,7 @@ from pathlib import Path
 from ds_store import DSStore
 from mac_alias import Alias
 
-# Must match scripts/make-dmg.sh and render-background.py.
+# Must match scripts/make-dmg.sh and render-background.swift.
 WIN_X, WIN_Y = 200, 200
 WIN_W, CONTENT_H, TITLEBAR = 640, 400, 28
 WIN_H = CONTENT_H + TITLEBAR

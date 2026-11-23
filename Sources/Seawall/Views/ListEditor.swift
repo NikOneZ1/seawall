@@ -456,11 +456,10 @@ private struct LookPicker: View {
                             .font(.system(size: 14, weight: .medium))
                             .frame(width: 32, height: 32)
                             .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(list.symbol == symbol ? list.color.color.opacity(0.25) : Color.primary.opacity(0.05)))
-                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(list.symbol == symbol ? list.color.color : .clear, lineWidth: 1.5))
+                                .fill(list.symbol == symbol ? Color.ink : Color.surface))
+                            .foregroundStyle(list.symbol == symbol ? Color.onInk : Color.primary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressButtonStyle())
                     .accessibilityLabel(symbol.replacingOccurrences(of: ".fill", with: "").replacingOccurrences(of: ".", with: " "))
                 }
             }

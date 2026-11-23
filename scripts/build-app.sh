@@ -27,6 +27,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Framewor
 cp "$BIN_DIR/Seawall" "$APP/Contents/MacOS/Seawall"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# The blocked page embeds Barlow; its license travels with the app.
+cp Resources/Fonts/Barlow-OFL.txt "$APP/Contents/Resources/Barlow-OFL.txt"
 # ditto keeps the framework's symlinks, which codesign insists on.
 ditto "$BIN_DIR/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 
@@ -63,9 +65,9 @@ if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | gr
     echo "error: this release build contains the debug-only dev license" >&2
     exit 1
 fi
-# Same for the debug-only screenshot renderer (LicenseShots).
-if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | grep -q render-license-shots; then
-    echo "error: this release build contains the debug-only license screenshot renderer" >&2
+# Same for the debug-only screenshot renderers (LicenseShots, DesignShots).
+if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | grep -q -E 'render-(license|design)-shots'; then
+    echo "error: this release build contains a debug-only screenshot renderer" >&2
     exit 1
 fi
 

@@ -8,6 +8,7 @@ enum SeawallMain {
     static func main() {
         #if DEBUG
         LicenseShots.runIfAsked()
+        DesignShots.runIfAsked()
         #endif
         SeawallApp.main()
     }

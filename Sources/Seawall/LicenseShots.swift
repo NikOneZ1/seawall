@@ -88,7 +88,7 @@ enum LicenseShots {
                 Button("Back") {}
                 if v.isLicensed {
                     Button("Continue") {}
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(PrimaryButtonStyle(large: true))
                 } else {
                     Button("Continue Without a Key") {}
                 }

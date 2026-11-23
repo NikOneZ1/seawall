@@ -134,7 +134,7 @@ struct AddSearch: View {
         .lineLimit(1)
         .padding(.horizontal, 6)
         .frame(height: compact ? 24 : 26)
-        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(highlighted ? Color.accentColor.opacity(0.2) : .clear))
+        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(highlighted ? Color.surfaceHover : .clear))
         .contentShape(.rect)
     }
 

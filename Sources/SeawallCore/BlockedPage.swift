@@ -35,7 +35,8 @@ public enum BlockedPageChoice: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// The page a blocked tab lands on: flat, light and dark, one self-contained HTML document
-/// with no external files. It reads `until` (unix seconds), `url` and `n` (tries in this block)
+/// with no external files (its fonts are embedded, see `BlockedPageFonts`). It leads with the
+/// time the site opens again, in red, the one place the page uses red. It reads `until` (unix seconds), `url` and `n` (tries in this block)
 /// from its address and keeps its own small counters in the browser.
 public enum BlockedPage {
     /// What Random picks from.
@@ -86,14 +87,16 @@ public enum BlockedPage {
         <!doctype html>
         <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>Blocked</title>
-        <style>\(parts.shellCSS)\(used.map(\.css).joined())</style></head>
+        <style>\(BlockedPageFonts.css)\(parts.shellCSS)\(used.map(\.css).joined())</style></head>
         <body data-page="\(title)">
-        <header class="top"><div class="brand">\(parts.icon)<span>Seawall</span></div>\(switcher)<span class="pill" id="pill"></span></header>
+        <header class="top"><div class="brand">\(parts.icon)<span>Seawall</span></div>\(switcher)<span></span></header>
         <main>
+        <section class="when" id="when"><p class="host" id="host"></p><p class="time" id="time"></p><dl class="rows" id="rows"></dl></section>
+        <div class="act">
         \(used.map(\.body).joined(separator: "\n"))
         <section class="c" id="over" data-name="over" hidden><h1>Block is over</h1><p class="sub">You can go back now.</p><a class="btn open" id="openLink" hidden></a></section>
+        </div>
         </main>
-        <footer class="foot" id="foot"></footer>
         <script>
         \(parts.shellJS)
         \(used.map(\.js).joined(separator: "\n"))

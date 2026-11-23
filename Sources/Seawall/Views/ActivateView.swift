@@ -37,6 +37,7 @@ struct ActivateView: View {
                         .controlSize(.small)
                 }
                 Button("Activate", action: activate)
+                    .buttonStyle(PrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                     .disabled(license.isWorking || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -56,6 +57,8 @@ struct ActivateView: View {
         }
         .padding(24)
         .frame(width: 460)
+        .tint(Color.ink)
+        .buttonStyle(SoftButtonStyle())
     }
 
     private func activate() {

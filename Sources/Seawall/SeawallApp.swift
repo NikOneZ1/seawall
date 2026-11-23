@@ -9,6 +9,9 @@ struct SeawallApp: App {
         MenuBarExtra {
             MenuView()
                 .environmentObject(appDelegate.controller)
+                // One look: ink instead of the system accent, soft tiles for every plain button.
+                .tint(Color.ink)
+                .buttonStyle(SoftButtonStyle())
         } label: {
             MenuBarLabel(state: appDelegate.controller.menuBar)
         }

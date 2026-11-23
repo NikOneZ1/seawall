@@ -42,7 +42,7 @@ struct SchedulesPane: View {
                         }
                     }
                     .padding(.horizontal, Space.m)
-                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
                 }
             }
             .padding(Space.xl)
@@ -303,7 +303,7 @@ struct ScheduleEditor: View {
                 Button("Cancel", action: cancel)
                     .keyboardShortcut(.cancelAction)
                 Button(isNew ? "Add" : "Save") { save(schedule) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(PrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
                     .disabled(schedule.days.isEmpty || schedule.start == schedule.end)
             }
@@ -326,12 +326,13 @@ struct DayPicker: View {
                 } label: {
                     Text(letter)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(on ? Color.white : Color.primary)
+                        .foregroundStyle(on ? Color.onInk : Color.primary)
                         .frame(width: 26, height: 26)
-                        .background(Circle().fill(on ? Color.accentColor : Color.primary.opacity(0.07)))
+                        .background(Circle().fill(on ? Color.ink : Color.surface))
+                        .animation(.easeOut(duration: 0.15), value: on)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressButtonStyle())
                 .accessibilityLabel(name)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
