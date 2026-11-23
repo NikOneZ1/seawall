@@ -24,6 +24,7 @@ struct WelcomeView: View {
     @State private var openAtLogin = true
     /// macOS hasn't asked about notifications yet; it will when the block starts.
     @State private var notificationsPending = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         WelcomeLayout {
@@ -54,6 +55,8 @@ struct WelcomeView: View {
         .task {
             notificationsPending = await Notifier.shared.willAsk()
         }
+        .tint(Color.ink)
+        .buttonStyle(SoftButtonStyle())
     }
 
     private var items: [StarterItem] { Starter.items(apps: apps) }
@@ -82,11 +85,12 @@ struct WelcomeView: View {
                     .help("Setup works without a key. Starting a block needs one.")
             } else {
                 Button("Continue") { advance() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(PrimaryButtonStyle(large: true))
                     .keyboardShortcut(.defaultAction)
                     .disabled(step == .pick && pickedNothing)
             }
         }
+        .buttonStyle(SoftButtonStyle(large: true))
     }
 
     // MARK: - 1. What pulls you in
@@ -94,7 +98,7 @@ struct WelcomeView: View {
     private var pick: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text("Welcome to Seawall")
-                .font(.title.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
             Text("Seawall locks the sites and apps that eat your time, for as long as you choose. No changing your mind five seconds later.")
                 .fixedSize(horizontal: false, vertical: true)
             Text("Tap what pulls you in. It goes into your list \(list?.name ?? "Distractions"), and you can change it any time.")
@@ -130,24 +134,30 @@ struct WelcomeView: View {
         return Button {
             if on { picked.remove(id) } else { picked.insert(id) }
         } label: {
-            HStack(spacing: 7) {
+            // Picked: an ink tile with a tick. Not picked: a soft grey one. Never colour alone.
+            HStack(spacing: 8) {
                 icon()
                     .overlay(alignment: .topTrailing) {
                         if on {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Color.onInk, Color.ink)
+                            // On the ink tile, `.primary` is the light one and the window colour the dark one.
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 7, weight: .heavy))
+                                .foregroundStyle(Color(nsColor: .windowBackgroundColor))
+                                .frame(width: 13, height: 13)
+                                .background(Circle().fill(Color.primary))
                                 .offset(x: 5, y: -5)
                         }
                     }
                 Text(title)
+                    .font(.body.weight(.medium))
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 9)
-            .frame(height: 36)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Color.ink.opacity(0.08) : Color.primary.opacity(0.05)))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(on ? Color.ink : Color.primary.opacity(0.08)))
+            .foregroundStyle(.primary)
+            .onInk(on, scheme: colorScheme)
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(on ? Color.ink : Color.surface))
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -167,7 +177,7 @@ struct WelcomeView: View {
     private var browsers: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text("Let Seawall see your tabs")
-                .font(.title.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
             Text("During a block Seawall reads each tab's address and swaps blocked ones for a calm page. Nothing leaves your Mac. Without access it can only close that browser while a block runs.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -180,8 +190,8 @@ struct WelcomeView: View {
                         Spacer()
                         switch controller.browserAccess[browser.bundleID] {
                         case .granted:
-                            Label("Allowed", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                            Label("Allowed", systemImage: "checkmark")
+                                .foregroundStyle(.secondary)
                         case .denied:
                             Button("Turn On in System Settings…") { controller.openAutomationSettings() }
                         default:
@@ -193,7 +203,7 @@ struct WelcomeView: View {
                     .frame(height: 40)
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
             if controller.installedBrowsers.contains(where: { controller.browserAccess[$0.bundleID] != .granted && controller.browserAccess[$0.bundleID] != .denied }) {
                 Text("Next, macOS asks \u{201C}Seawall wants to control …\u{201D} once for each browser. Choose Allow. A closed browser opens in the background so macOS can ask.")
                     .font(.subheadline)
@@ -206,6 +216,7 @@ struct WelcomeView: View {
                         asking = false
                     }
                 }
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(asking)
             }
             if !controller.deniedBrowsers.isEmpty {
@@ -222,7 +233,7 @@ struct WelcomeView: View {
     private var leaving: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text("How hard is leaving early?")
-                .font(.title.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
             Text("A block can be left before its time, just not on a whim. After the wait you get 2 minutes to end it; do nothing and it keeps going.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -268,7 +279,7 @@ struct WelcomeView: View {
     private var start: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text(controller.sessions.isEmpty ? "Start your first block" : "Start another block")
-                .font(.title.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
             Text("Seawall lives in your menu bar. Click the tilted lock any time to start a block, see the time left or edit your lists.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -321,7 +332,7 @@ struct WelcomeView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(Space.m)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
     }
 
     private var firstBlockEnd: Date { Welcome.firstBlockLength.end(from: controller.now) }
@@ -404,25 +415,22 @@ struct WelcomeLayout<Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                Color.primary.opacity(0.04)
-                Image(nsImage: NSApp.applicationIconImage)
-                    .resizable()
-                    .frame(width: 56, height: 56)
-                    .padding(.leading, 26)
-                    .padding(.bottom, 14)
-            }
-            .frame(height: 96)
+        // Plain paper: the icon, the step, the footer. No band, no outlines.
+        VStack(alignment: .leading, spacing: 0) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 52, height: 52)
+                .padding(.leading, 28)
+                .padding(.top, 40)
 
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 32)
                 .padding(.top, Space.l)
 
             footer
-                .padding(.horizontal, 28)
-                .padding(.vertical, Space.l)
+                .padding(.horizontal, 32)
+                .padding(.vertical, Space.xl)
         }
         .frame(width: 560, height: 640)
     }
@@ -437,7 +445,7 @@ struct WelcomeStepDots: View {
         HStack(spacing: 6) {
             ForEach(0..<count, id: \.self) { index in
                 Circle()
-                    .fill(index == current ? Color.primary : Color.primary.opacity(0.2))
+                    .fill(index == current ? Color.ink : Color.primary.opacity(0.18))
                     .frame(width: 6, height: 6)
             }
         }
@@ -459,7 +467,7 @@ struct WelcomeLicenseStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text("Activate Seawall")
-                .font(.title.weight(.semibold))
+                .font(.largeTitle.weight(.bold))
             Text(isLicensed
                  ? "Thanks for supporting Seawall. Blocks can start on this Mac now."
                  : "Seawall is a one-time purchase. Setup works without a key and your lists are kept either way; starting a block needs one.")

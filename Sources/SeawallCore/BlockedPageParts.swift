@@ -8,9 +8,9 @@ enum BlockedPageParts {
 <svg class="mark" viewBox="100 100 824 824" aria-hidden="true"><defs><clipPath id="blk"><rect x="262" y="262" width="500" height="500" rx="130"/></clipPath></defs><rect x="100" y="100" width="824" height="824" rx="185" fill="#E2382F"/><rect x="262" y="262" width="500" height="500" rx="130" fill="#fff"/><path d="M250 557 L258 563 L266 568 L274 572 L282 576 L290 580 L298 582 L306 583 L314 583 L322 582 L330 580 L338 576 L346 572 L354 568 L362 563 L370 557 L378 552 L386 546 L394 541 L402 536 L410 533 L418 530 L426 528 L434 527 L442 527 L450 529 L458 531 L466 534 L474 539 L482 543 L490 549 L498 554 L506 560 L514 565 L522 570 L530 575 L538 578 L546 581 L554 582 L562 583 L570 582 L578 581 L586 578 L594 575 L602 570 L610 565 L618 560 L626 554 L634 549 L642 543 L650 539 L658 534 L666 531 L674 529 L682 527 L690 527 L698 528 L706 530 L714 533 L722 536 L730 541 L738 546 L746 552 L754 557 L762 563 L770 568 L772 780 L250 780Z" fill="#C9CCCE" clip-path="url(#blk)"/><path d="M250 653 L258 649 L266 645 L274 640 L282 635 L290 629 L298 624 L306 619 L314 615 L322 611 L330 608 L338 606 L346 604 L354 604 L362 605 L370 607 L378 609 L386 613 L394 617 L402 622 L410 627 L418 632 L426 637 L434 642 L442 647 L450 651 L458 655 L466 657 L474 659 L482 660 L490 660 L498 658 L506 656 L514 653 L522 649 L530 645 L538 640 L546 635 L554 629 L562 624 L570 619 L578 615 L586 611 L594 608 L602 606 L610 604 L618 604 L626 605 L634 607 L642 609 L650 613 L658 617 L666 622 L674 627 L682 632 L690 637 L698 642 L706 647 L714 651 L722 655 L730 657 L738 659 L746 660 L754 660 L762 658 L770 656 L772 780 L250 780Z" fill="#161616" clip-path="url(#blk)"/></svg>
 """##
     static let shellCSS = ##"""
-:root{color-scheme:light dark;--bg:#FFFFFF;--ink:#161616;--muted:#686C70;--rule:#161616;--soft:#E4E4E2;--chip:#F4F4F2;--time:#D93026;--on-ink:#FFFFFF;
+:root{color-scheme:light dark;--bg:#FFFFFF;--ink:#161616;--muted:#686C70;--rule:#161616;--soft:#E4E4E2;--chip:#EFEFEC;--time:#D93026;--on-ink:#FFFFFF;
 --font:"Barlow",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;--cond:"Barlow Semi Condensed","Barlow",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--ink:#F2F2F0;--muted:#A3A7AB;--rule:#F2F2F0;--soft:#2E2E2E;--chip:#202020;--time:#FF5A4F;--on-ink:#141414}}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--ink:#F2F2F0;--muted:#A3A7AB;--rule:#F2F2F0;--soft:#2E2E2E;--chip:#262626;--time:#FF5A4F;--on-ink:#141414}}
 *{box-sizing:border-box}
 html{background:var(--bg);margin:0}
 body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:17px/1.45 var(--font);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;display:flex;flex-direction:column}
@@ -39,10 +39,10 @@ body.is-over .when{display:none}
 .c{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible,canvas:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-.btn{background:var(--ink);color:var(--on-ink);border:0;border-radius:4px;padding:15px 22px;font:600 17px/1 var(--font)}
+.btn{background:var(--ink);color:var(--on-ink);border:0;border-radius:10px;padding:15px 22px;font:600 17px/1 var(--font)}
 .btn:hover{opacity:.86}
-.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
-.btn.ghost:hover{background:var(--chip);opacity:1}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.ghost:hover{background:var(--soft);opacity:1}
 .btn[disabled]{background:var(--chip);color:var(--muted);box-shadow:none;cursor:default;opacity:1}
 h1{margin:0;font:700 clamp(30px,3.4vw,44px)/1.05 var(--cond);letter-spacing:-.01em}
 p.sub{margin:12px 0 0;color:var(--muted);font-size:18px;max-width:30em}
@@ -62,7 +62,7 @@ const SW=(()=>{
   const ord=n=>{const t=n%100,o=n%10;return n+(t>10&&t<14?'th':o===1?'st':o===2?'nd':o===3?'rd':'th')};
   const left=()=>until?Math.max(0,Math.ceil((until-Date.now())/1000)):0;
   const hms=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60,x=s%60;return h?`${h}:${pad(m)}:${pad(x)}`:`${m}:${pad(x)}`};
-  const short=s=>{const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h}h ${pad(m)}m`:`${m}m`};
+  const short=s=>{if(s<60)return'under a minute';const h=Math.floor(s/3600),m=Math.floor(s/60)%60;return h?`${h}h ${pad(m)}m`:`${m}m`};
   // When the block ends: today is just the time, tomorrow and later days say so before "at".
   function endParts(){
     const e=new Date(until),time=pad(e.getHours())+':'+pad(e.getMinutes()),tom=new Date();tom.setDate(tom.getDate()+1);
@@ -181,11 +181,11 @@ const SW=(()=>{
 """##
     static let whyCSS = ##"""
 .c-why .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px;margin-top:28px}
-.c-why .chip{border:0;box-shadow:inset 0 0 0 1.5px var(--ink);background:transparent;color:var(--ink);padding:13px 18px;border-radius:4px;font:600 17px/1 var(--font)}
-.c-why .chip:hover{background:var(--chip)}
+.c-why .chip{border:0;background:var(--chip);color:var(--ink);padding:13px 18px;border-radius:10px;font:600 17px/1 var(--font)}
+.c-why .chip:hover{background:var(--soft)}
 .c-why .chip[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
 .c-why .card{display:grid;grid-template-columns:auto 1fr;gap:18px 20px;align-items:start;text-align:left;margin-top:28px;max-width:560px;width:100%;border-top:2px solid var(--rule);border-bottom:1px solid var(--rule);padding:22px 0}
-.c-why .ico{width:48px;height:48px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--ink);display:grid;place-items:center}
+.c-why .ico{width:48px;height:48px;border-radius:12px;background:var(--chip);display:grid;place-items:center}
 .c-why .ico svg{width:26px;height:26px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .c-why .card h2{margin:0;font:700 24px/1.1 var(--cond)}.c-why .card p{margin:6px 0 0;color:var(--muted)}
 .c-why .cta{grid-column:1/-1;display:flex;gap:12px}
@@ -250,10 +250,10 @@ const SW=(()=>{
 """##
     static let stackCSS = ##"""
 .c-stack .wrap{width:min(520px,100%);margin:22px 0 14px}
-.c-stack canvas{width:100%;height:auto;display:block;background:var(--bg);border:1.5px solid var(--ink);border-radius:4px;touch-action:manipulation;cursor:pointer}
+.c-stack canvas{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--soft);border-radius:12px;touch-action:manipulation;cursor:pointer}
 .c-stack .hud{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:15px;color:var(--muted)}
 .c-stack .hud b{color:var(--ink);font:700 20px/1 var(--cond)}
-.c-stack .bar{flex:1;height:4px;background:var(--soft);overflow:hidden}
+.c-stack .bar{flex:1;height:4px;background:var(--soft);border-radius:2px;overflow:hidden}
 .c-stack .bar i{display:block;height:100%;width:100%;background:var(--time);transform-origin:left}
 .c-stack .actions{min-height:48px}.c-stack .sub{font-size:16px;margin-top:10px}
 """##

@@ -127,9 +127,12 @@ struct LockView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            Button("Edit…") { Panels.showMain(.list(list.id), controller: controller) }
-                .font(.subheadline)
-                .buttonStyle(.link)
+            Button { Panels.showMain(.list(list.id), controller: controller) } label: {
+                Text("Edit…").underline()
+            }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .buttonStyle(.plain)
                 .help("Change what \(list.name) locks")
         }
     }
@@ -219,13 +222,17 @@ private struct LengthRow: View {
         HStack(spacing: Space.s) {
             Text("for")
                 .font(.title3.weight(.semibold))
-            Picker("Length", selection: preset) {
+            HStack(spacing: Space.xs) {
                 ForEach(BlockLength.presets, id: \.self) { length in
-                    Text(length.short).tag(Optional(length))
+                    Button { set(length) } label: {
+                        Text(length.short).frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(ChoiceButtonStyle(isOn: controller.config.next.length == length))
+                    .accessibilityLabel(length.title)
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Length")
             Menu {
                 Section("For") {
                     ForEach(BlockLength.more, id: \.self) { length in
@@ -241,20 +248,19 @@ private struct LengthRow: View {
                     Button("Custom…") { pickingTime = true }
                 }
             } label: {
-                Text(moreTitle)
+                HStack(spacing: 4) {
+                    Text(moreTitle)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .opacity(0.6)
+                }
             }
+            .menuStyle(.button)
+            .buttonStyle(ChoiceButtonStyle(isOn: !BlockLength.presets.contains(controller.config.next.length)))
+            .menuIndicator(.hidden)
             .fixedSize()
             .help("Other lengths, or until a set time")
         }
-    }
-
-    /// The segmented control's choice; none when the length came from the menu.
-    private var preset: Binding<BlockLength?> {
-        Binding(get: {
-            BlockLength.presets.contains(controller.config.next.length) ? controller.config.next.length : nil
-        }, set: { length in
-            if let length { set(length) }
-        })
     }
 
     private var moreTitle: String {

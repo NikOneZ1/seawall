@@ -64,15 +64,15 @@ struct DayTrack: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.08))
+                // Black and white like the rest of the menu: a running block in ink, a scheduled one grey.
+                RoundedRectangle(cornerRadius: 3, style: .continuous).fill(Color.primary.opacity(0.08))
                 ForEach(Array(stretches.enumerated()), id: \.offset) { _, stretch in
-                    let color = stretch.color?.color ?? Color.sea
-                    RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                        .fill(stretch.kind == .running ? AnyShapeStyle(color) : AnyShapeStyle(color.opacity(0.35)))
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(stretch.kind == .running ? AnyShapeStyle(Color.ink) : AnyShapeStyle(Color.primary.opacity(0.18)))
                         .overlay {
                             if stretch.kind == .scheduled {
-                                RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                                    .strokeBorder(color.opacity(0.7), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .strokeBorder(Color.primary.opacity(0.45), lineWidth: 1)
                             }
                         }
                         .frame(width: max(height, width * (stretch.to - stretch.from)))

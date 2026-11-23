@@ -93,8 +93,7 @@ struct LockedView: View {
                     }
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.primary.opacity(0.08)).allowsHitTesting(false))
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
             Button(action: onAdd) {
                 Label("Lock Another List", systemImage: "plus")
                     .frame(maxWidth: .infinity)
@@ -267,8 +266,18 @@ private struct AddMenu: View {
             Button("A Site or App…", action: onAddSite)
             Button("Another List…", action: onAddList)
         } label: {
-            Label("Add", systemImage: "plus")
+            HStack(spacing: 5) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Add")
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .opacity(0.6)
+            }
         }
+        .menuStyle(.button)
+        .buttonStyle(SoftButtonStyle())
+        .menuIndicator(.hidden)
         .fixedSize()
         .help("Make this block stricter: more time, or more to block")
     }
@@ -344,7 +353,7 @@ private struct LeaveExplainer: View {
             }
         }
         .padding(Space.m)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
     }
 }
 
@@ -379,7 +388,7 @@ private struct WaitPanel: View {
             Spacer(minLength: 0)
         }
         .padding(Space.m)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
     }
 }
 
@@ -412,6 +421,6 @@ private struct ReadyPanel: View {
             }
         }
         .padding(Space.m)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Color.surface))
     }
 }

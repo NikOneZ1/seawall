@@ -65,9 +65,9 @@ if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | gr
     echo "error: this release build contains the debug-only dev license" >&2
     exit 1
 fi
-# Same for the debug-only screenshot renderer (LicenseShots).
-if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | grep -q render-license-shots; then
-    echo "error: this release build contains the debug-only license screenshot renderer" >&2
+# Same for the debug-only screenshot renderers (LicenseShots, DesignShots).
+if [[ "$CONFIG" == "release" ]] && strings -a "$APP/Contents/MacOS/Seawall" | grep -q -E 'render-(license|design)-shots'; then
+    echo "error: this release build contains a debug-only screenshot renderer" >&2
     exit 1
 fi
 

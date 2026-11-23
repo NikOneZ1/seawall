@@ -12,6 +12,14 @@ enum Space {
     static let xl: CGFloat = 20
 }
 
+/// One corner shape, the Soft look (chosen 2026-11-23): 8 on small controls, 10 on big ones and
+/// tiles, 12 on cards. The blocked page and the site use the same.
+enum Radius {
+    static let small: CGFloat = 8
+    static let control: CGFloat = 10
+    static let card: CGFloat = 12
+}
+
 /// Apple's own text styles, four of them. The timer is the one exception, and it uses
 /// monospaced digits so it doesn't jitter.
 extension Font {
@@ -30,6 +38,9 @@ extension Color {
     static let time = dynamic(light: (0.85, 0.19, 0.15), dark: (1.0, 0.35, 0.31))
     /// The colour a list without one of its own is drawn in: the Sea list colour.
     static let sea = ListColor.sea.color
+    /// A soft grey tile: an unpicked option, a secondary button, a card. No outlines in the Soft look.
+    static let surface = Color.primary.opacity(0.07)
+    static let surfaceHover = Color.primary.opacity(0.11)
     /// A hold's progress across the ink button: a lighter grey in light mode, a darker one in
     /// dark mode. The label stays at least 9:1 against it.
     static let holdProgress = Color(nsColor: NSColor(name: nil) { appearance in
@@ -94,8 +105,8 @@ struct HoldButton: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        let shape = Capsule()
-        // Off, it's a plain grey pill with a readable reason ("Add something to lock"), not faded ink.
+        let shape = RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+        // Off, it's a plain grey tile with a readable reason ("Add something to lock"), not faded ink.
         let fill = isEnabled ? Color.ink : Color.primary.opacity(0.1)
         let ink = isEnabled ? Color.onInk : Color.secondary
         ZStack(alignment: .leading) {
@@ -117,7 +128,7 @@ struct HoldButton: View {
         .focusable(isEnabled, interactions: .activate)
         .focused($focused)
         .focusEffectDisabled()
-        .overlay { if focused { shape.strokeBorder(Color.accentColor, lineWidth: 2).padding(-3) } }
+        .overlay { if focused { RoundedRectangle(cornerRadius: Radius.control + 3, style: .continuous).strokeBorder(Color.ink.opacity(0.5), lineWidth: 2).padding(-3) } }
         .onLongPressGesture(minimumDuration: Self.holdTime, maximumDistance: 40) {
             complete()
         } onPressingChanged: { isPressing in
@@ -182,19 +193,69 @@ struct HoldButton: View {
     }
 }
 
-/// The one prominent button style in the menu, the hold button's colours at a normal size.
+/// The one prominent button style, the hold button's colours at a normal size. `large` is for
+/// a window's footer (Continue).
 struct PrimaryButtonStyle: ButtonStyle {
+    var large = false
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: large ? Radius.control : Radius.small, style: .continuous)
         configuration.label
             .font(.body.weight(.semibold))
             .foregroundStyle(Color.onInk)
-            .padding(.horizontal, Space.m)
-            .frame(height: 24)
-            .background(Capsule().fill(Color.ink)
-                .opacity(configuration.isPressed ? 0.8 : (isEnabled ? 1 : 0.4)))
-            .contentShape(Capsule())
+            .padding(.horizontal, large ? Space.l : Space.m)
+            .frame(minHeight: large ? 32 : 26)
+            .background(shape.fill(Color.ink)
+                .opacity(configuration.isPressed ? 0.8 : (isEnabled ? 1 : 0.35)))
+            .contentShape(shape)
+    }
+}
+
+/// Every other button: a soft grey tile, no outline. Set on the menu and the welcome as the default.
+struct SoftButtonStyle: ButtonStyle {
+    var large = false
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: large ? Radius.control : Radius.small, style: .continuous)
+        configuration.label
+            .font(.body.weight(.medium))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, large ? Space.l : Space.m)
+            .frame(minHeight: large ? 32 : 26)
+            .background(shape.fill(configuration.isPressed || hovering ? Color.surfaceHover : Color.surface))
+            .opacity(isEnabled ? 1 : 0.4)
+            .contentShape(shape)
+            .onHover { hovering = $0 }
+    }
+}
+
+/// One option of a few side by side (25m, 1h, 2h): ink when picked, a soft tile when not.
+struct ChoiceButtonStyle: ButtonStyle {
+    let isOn: Bool
+    @State private var hovering = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(isOn ? Color.onInk : Color.primary)
+            .padding(.horizontal, Space.s + 2)
+            .frame(minHeight: 26)
+            .background(shape.fill(isOn ? Color.ink : (configuration.isPressed || hovering ? Color.surfaceHover : Color.surface)))
+            .contentShape(shape)
+            .onHover { hovering = $0 }
+            .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+extension View {
+    /// Draws this view's contents as if on an ink fill: light on dark in light mode, and the
+    /// other way round in dark mode, so `.primary` and `.secondary` read on the fill.
+    func onInk(_ isOn: Bool, scheme: ColorScheme) -> some View {
+        environment(\.colorScheme, isOn ? (scheme == .dark ? .light : .dark) : scheme)
     }
 }
 
@@ -211,18 +272,26 @@ struct SeaIconLabelStyle: LabelStyle {
 
 // MARK: - Lists
 
-/// A list's mark: its symbol on its colour.
+/// A list's mark: its symbol in ink on a soft tile, and the list's colour as a small dot. The
+/// colour only tells lists apart; everything else stays black and white.
 struct ListBadge: View {
     let symbol: String
     let color: ListColor
     var size: CGFloat = 22
 
     var body: some View {
+        let dot = max(6, (size * 0.3).rounded())
         Image(systemName: symbol)
             .font(.system(size: size * 0.5, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
             .frame(width: size, height: size)
-            .background(RoundedRectangle(cornerRadius: size * 0.3, style: .continuous).fill(color.color))
+            .background(RoundedRectangle(cornerRadius: size * 0.3, style: .continuous).fill(Color.primary.opacity(0.09)))
+            .overlay(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(color.color)
+                    .frame(width: dot, height: dot)
+                    .offset(x: dot * 0.3, y: dot * 0.3)
+            }
             .accessibilityHidden(true)
     }
 }
@@ -237,6 +306,7 @@ struct ListCard: View {
 
     static let height: CGFloat = 46
     @State private var hovering = false
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         Button(action: action) {
@@ -252,24 +322,21 @@ struct ListCard: View {
                 .lineLimit(1)
                 Spacer(minLength: 0)
             }
+            .foregroundStyle(.primary)
+            .onInk(isSelected, scheme: scheme)
             .padding(.horizontal, 9)
             .frame(maxWidth: .infinity, minHeight: Self.height)
             .background {
-                let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-                shape.fill(isSelected ? AnyShapeStyle(selectedFill) : AnyShapeStyle(Color.primary.opacity(hovering ? 0.08 : 0.04)))
-                shape.strokeBorder(isSelected ? list.color.color : Color.primary.opacity(0.1), lineWidth: isSelected ? 1.5 : 0.5)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(isSelected ? Color.ink : (hovering ? Color.surfaceHover : Color.surface))
             }
-            .contentShape(.rect(cornerRadius: 12))
+            .contentShape(.rect(cornerRadius: Radius.card))
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .accessibilityLabel("\(list.name), \(detail)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .help(isSelected ? "\(list.name) is picked for the next block" : "Pick \(list.name)")
-    }
-
-    private var selectedFill: Color {
-        list.color.color.opacity(0.16)
     }
 }
 
@@ -292,10 +359,10 @@ struct NewListCard: View {
             .padding(.horizontal, 9)
             .frame(maxWidth: .infinity, minHeight: ListCard.height)
             .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(hovering ? 0.3 : 0.16), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(Color.primary.opacity(hovering ? 0.07 : 0.03))
             }
-            .contentShape(.rect(cornerRadius: 12))
+            .contentShape(.rect(cornerRadius: Radius.card))
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
@@ -319,8 +386,8 @@ struct ProgressBar: View {
                     let start = Double(index) / Double(segments)
                     let fill = min(max((value - start) * Double(segments), 0), 1)
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.primary.opacity(0.12))
-                        Capsule().fill(Color.primary.opacity(0.8)).frame(width: width * fill)
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(Color.primary.opacity(0.12))
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(Color.ink).frame(width: width * fill)
                     }
                     .frame(width: width)
                 }
@@ -356,7 +423,8 @@ struct SiteIcon: View {
 
     var body: some View {
         if let host = SiteRule(pattern)?.host, let image = icons.icon(for: host) {
-            Image(nsImage: image)
+            // Logos in black and white, so a page of them doesn't turn into a rainbow.
+            Image(nsImage: image.monochrome)
                 .resizable()
                 .interpolation(.high)
                 .frame(width: size, height: size)
@@ -377,7 +445,7 @@ struct AppIcon: View {
     var body: some View {
         if let image {
             // App icons carry their own margin, so they draw a little larger to match.
-            Image(nsImage: image)
+            Image(nsImage: image.monochrome)
                 .resizable()
                 .frame(width: size * 1.2, height: size * 1.2)
                 .frame(width: size, height: size)
@@ -400,7 +468,7 @@ struct AppIcon: View {
     }
 }
 
-/// A category's mark: its symbol on its colour, like a list's.
+/// A category's mark: its symbol in ink on a soft tile, like a list's, without the dot.
 struct GroupIcon: View {
     let group: SiteGroup
     var size: CGFloat = 16
@@ -408,9 +476,9 @@ struct GroupIcon: View {
     var body: some View {
         Image(systemName: group.symbol)
             .font(.system(size: size * 0.55, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
             .frame(width: size, height: size)
-            .background(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous).fill(group.color))
+            .background(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous).fill(Color.primary.opacity(0.09)))
     }
 }
 
@@ -452,13 +520,32 @@ struct BrowsersIcon: View {
         } else {
             HStack(spacing: -size / 2) {
                 ForEach(Array(icons.enumerated()), id: \.offset) { _, browser in
-                    Image(nsImage: browser.icon)
+                    Image(nsImage: browser.icon.monochrome)
                         .resizable()
                         .frame(width: size * 1.2, height: size * 1.2)
                         .frame(width: size, height: size)
                 }
             }
         }
+    }
+}
+
+extension NSImage {
+    private static let monochromes = NSCache<NSImage, NSImage>()
+
+    /// The same image in black and white, so logos don't turn a page into a rainbow. Drawn once
+    /// per image and kept; a view filter (`.grayscale`) isn't drawn in every context, this is.
+    var monochrome: NSImage {
+        if let done = Self.monochromes.object(forKey: self) { return done }
+        guard let tiff = tiffRepresentation, let input = CIImage(data: tiff),
+              let filter = CIFilter(name: "CIPhotoEffectMono") else { return self }
+        filter.setValue(input, forKey: kCIInputImageKey)
+        guard let output = filter.outputImage else { return self }
+        let rep = NSCIImageRep(ciImage: output)
+        let image = NSImage(size: size)
+        image.addRepresentation(rep)
+        Self.monochromes.setObject(image, forKey: self)
+        return image
     }
 }
 
