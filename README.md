@@ -37,7 +37,7 @@ cd seawall
 make install   # builds and copies to /Applications
 ```
 
-Other commands: `make run` runs from `build/`, `make test` runs the tests, `make energy` measures what the running app costs, and `make release VERSION=1.0.0` makes a disk image and an update in `dist/` (see `scripts/release.sh` for the signing and update settings it reads).
+Other commands: `make run` runs from `build/`, `make test` runs the tests, `make energy` measures what the running app costs, and `make release VERSION=1.0.0` makes an installer disk image (app + Applications, see `scripts/make-dmg.sh`) and an update in `dist/` (see `scripts/release.sh` for the signing and update settings it reads).
 
 A build from source doesn't update itself. Release builds check for updates once a day (Settings → About), and an update never restarts Seawall in the middle of a block: it waits until the block ends.
 
