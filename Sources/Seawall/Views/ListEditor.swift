@@ -459,7 +459,7 @@ private struct LookPicker: View {
                                 .fill(list.symbol == symbol ? Color.ink : Color.surface))
                             .foregroundStyle(list.symbol == symbol ? Color.onInk : Color.primary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressButtonStyle())
                     .accessibilityLabel(symbol.replacingOccurrences(of: ".fill", with: "").replacingOccurrences(of: ".", with: " "))
                 }
             }

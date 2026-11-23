@@ -197,57 +197,90 @@ struct HoldButton: View {
 /// a window's footer (Continue).
 struct PrimaryButtonStyle: ButtonStyle {
     var large = false
-    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: large ? Radius.control : Radius.small, style: .continuous)
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Color.onInk)
-            .padding(.horizontal, large ? Space.l : Space.m)
-            .frame(minHeight: large ? 32 : 26)
-            .background(shape.fill(Color.ink)
-                .opacity(configuration.isPressed ? 0.8 : (isEnabled ? 1 : 0.35)))
-            .contentShape(shape)
+        ButtonSkin(label: configuration.label, pressed: configuration.isPressed, kind: .primary, large: large)
     }
 }
 
 /// Every other button: a soft grey tile, no outline. Set on the menu and the welcome as the default.
 struct SoftButtonStyle: ButtonStyle {
     var large = false
-    @Environment(\.isEnabled) private var isEnabled
-    @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: large ? Radius.control : Radius.small, style: .continuous)
-        configuration.label
-            .font(.body.weight(.medium))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, large ? Space.l : Space.m)
-            .frame(minHeight: large ? 32 : 26)
-            .background(shape.fill(configuration.isPressed || hovering ? Color.surfaceHover : Color.surface))
-            .opacity(isEnabled ? 1 : 0.4)
-            .contentShape(shape)
-            .onHover { hovering = $0 }
+        ButtonSkin(label: configuration.label, pressed: configuration.isPressed, kind: .soft, large: large)
     }
 }
 
 /// One option of a few side by side (25m, 1h, 2h): ink when picked, a soft tile when not.
 struct ChoiceButtonStyle: ButtonStyle {
     let isOn: Bool
-    @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(isOn ? Color.onInk : Color.primary)
-            .padding(.horizontal, Space.s + 2)
-            .frame(minHeight: 26)
-            .background(shape.fill(isOn ? Color.ink : (configuration.isPressed || hovering ? Color.surfaceHover : Color.surface)))
-            .contentShape(shape)
-            .onHover { hovering = $0 }
+        ButtonSkin(label: configuration.label, pressed: configuration.isPressed, kind: .choice(isOn), large: false)
             .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
+/// For buttons that draw their own tile (list cards, welcome tiles, day letters): the same
+/// press as every other button, nothing else.
+struct PressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PressSkin(label: configuration.label, pressed: configuration.isPressed)
+    }
+}
+
+/// How every Seawall button answers a click: while pressed it shrinks a touch and darkens,
+/// then springs back; hover lightens the tile; picking fades the ink in. Reduce Motion keeps
+/// the colour changes and drops the movement. A view of its own, because a `ButtonStyle`
+/// can't keep hover state.
+private struct ButtonSkin<Label: View>: View {
+    enum Kind: Equatable { case primary, soft, choice(Bool) }
+
+    let label: Label
+    let pressed: Bool
+    let kind: Kind
+    let large: Bool
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: large ? Radius.control : Radius.small, style: .continuous)
+        label
+            .font(.body.weight(kind == .soft ? .medium : .semibold))
+            .foregroundStyle(isInk ? Color.onInk : Color.primary)
+            .padding(.horizontal, kind == .choice(true) || kind == .choice(false) ? Space.s + 2 : (large ? Space.l : Space.m))
+            .frame(minHeight: large ? 32 : 26)
+            .background(shape.fill(fill))
+            .opacity(isEnabled ? 1 : (isInk ? 0.35 : 0.4))
+            .contentShape(shape)
+            .scaleEffect(pressed && isEnabled && !reduceMotion ? 0.96 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.6), value: pressed)
+            .animation(.easeOut(duration: 0.12), value: hovering)
+            .animation(.easeOut(duration: 0.18), value: kind)
+            .onHover { hovering = $0 && isEnabled }
+    }
+
+    private var isInk: Bool { kind == .primary || kind == .choice(true) }
+
+    private var fill: Color {
+        if isInk { return Color.ink.opacity(pressed ? 0.75 : (hovering ? 0.88 : 1)) }
+        if pressed { return Color.primary.opacity(0.17) }
+        return hovering ? Color.surfaceHover : Color.surface
+    }
+}
+
+private struct PressSkin<Label: View>: View {
+    let label: Label
+    let pressed: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        label
+            .opacity(pressed ? 0.8 : 1)
+            .scaleEffect(pressed && !reduceMotion ? 0.97 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.6), value: pressed)
     }
 }
 
@@ -330,9 +363,11 @@ struct ListCard: View {
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(isSelected ? Color.ink : (hovering ? Color.surfaceHover : Color.surface))
             }
+            .animation(.easeOut(duration: 0.18), value: isSelected)
+            .animation(.easeOut(duration: 0.12), value: hovering)
             .contentShape(.rect(cornerRadius: Radius.card))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressButtonStyle())
         .onHover { hovering = $0 }
         .accessibilityLabel("\(list.name), \(detail)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -364,7 +399,7 @@ struct NewListCard: View {
             }
             .contentShape(.rect(cornerRadius: Radius.card))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressButtonStyle())
         .onHover { hovering = $0 }
         .help("Make a new list in the Seawall window")
     }
@@ -422,9 +457,8 @@ struct SiteIcon: View {
     @ObservedObject private var icons = SiteIcons.shared
 
     var body: some View {
-        if let host = SiteRule(pattern)?.host, let image = icons.icon(for: host) {
-            // Logos in black and white, so a page of them doesn't turn into a rainbow.
-            Image(nsImage: image.monochrome)
+        if let host = SiteRule(pattern)?.host, let image = MonoIcons.icon("site:" + host, make: { icons.icon(for: host) }) {
+            Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)
                 .frame(width: size, height: size)
@@ -445,7 +479,7 @@ struct AppIcon: View {
     var body: some View {
         if let image {
             // App icons carry their own margin, so they draw a little larger to match.
-            Image(nsImage: image.monochrome)
+            Image(nsImage: image)
                 .resizable()
                 .frame(width: size * 1.2, height: size * 1.2)
                 .frame(width: size, height: size)
@@ -458,12 +492,14 @@ struct AppIcon: View {
     }
 
     init(path: String, size: CGFloat = 16) {
-        image = NSWorkspace.shared.icon(forFile: path)
+        image = MonoIcons.icon("path:" + path) { NSWorkspace.shared.icon(forFile: path) }
         self.size = size
     }
 
     init(bundleID: String, size: CGFloat = 16) {
-        image = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID).map { NSWorkspace.shared.icon(forFile: $0.path) }
+        image = MonoIcons.icon("app:" + bundleID) {
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID).map { NSWorkspace.shared.icon(forFile: $0.path) }
+        }
         self.size = size
     }
 }
@@ -520,7 +556,7 @@ struct BrowsersIcon: View {
         } else {
             HStack(spacing: -size / 2) {
                 ForEach(Array(icons.enumerated()), id: \.offset) { _, browser in
-                    Image(nsImage: browser.icon.monochrome)
+                    Image(nsImage: MonoIcons.icon("browser:" + browser.name) { browser.icon } ?? browser.icon)
                         .resizable()
                         .frame(width: size * 1.2, height: size * 1.2)
                         .frame(width: size, height: size)
@@ -530,22 +566,36 @@ struct BrowsersIcon: View {
     }
 }
 
-extension NSImage {
-    private static let monochromes = NSCache<NSImage, NSImage>()
+/// Logos in black and white, so a page of them doesn't turn into a rainbow. Each one is drawn
+/// small and converted once, then kept by name: views are rebuilt on every tap, and converting
+/// full-size app icons each time made the welcome's tiles lag.
+@MainActor
+enum MonoIcons {
+    private static let cache = NSCache<NSString, NSImage>()
+    private static let context = CIContext()
 
-    /// The same image in black and white, so logos don't turn a page into a rainbow. Drawn once
-    /// per image and kept; a view filter (`.grayscale`) isn't drawn in every context, this is.
-    var monochrome: NSImage {
-        if let done = Self.monochromes.object(forKey: self) { return done }
-        guard let tiff = tiffRepresentation, let input = CIImage(data: tiff),
-              let filter = CIFilter(name: "CIPhotoEffectMono") else { return self }
+    /// The black and white version of the icon called `key`, made from `make()` the first time.
+    static func icon(_ key: String, make: () -> NSImage?) -> NSImage? {
+        if let done = cache.object(forKey: key as NSString) { return done }
+        guard let source = make() else { return nil }
+        let mono = convert(source) ?? source
+        cache.setObject(mono, forKey: key as NSString)
+        return mono
+    }
+
+    private static func convert(_ image: NSImage, pixels: Int = 96) -> NSImage? {
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8,
+                                         samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                                         bytesPerRow: 0, bitsPerPixel: 0),
+              let graphics = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = graphics
+        image.draw(in: NSRect(x: 0, y: 0, width: pixels, height: pixels))
+        NSGraphicsContext.restoreGraphicsState()
+        guard let input = CIImage(bitmapImageRep: rep), let filter = CIFilter(name: "CIPhotoEffectMono") else { return nil }
         filter.setValue(input, forKey: kCIInputImageKey)
-        guard let output = filter.outputImage else { return self }
-        let rep = NSCIImageRep(ciImage: output)
-        let image = NSImage(size: size)
-        image.addRepresentation(rep)
-        Self.monochromes.setObject(image, forKey: self)
-        return image
+        guard let output = filter.outputImage, let cg = context.createCGImage(output, from: input.extent) else { return nil }
+        return NSImage(cgImage: cg, size: NSSize(width: pixels / 2, height: pixels / 2))
     }
 }
 

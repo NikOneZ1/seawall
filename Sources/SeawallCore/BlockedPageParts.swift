@@ -48,7 +48,11 @@ h1{margin:0;font:700 clamp(30px,3.4vw,44px)/1.05 var(--cond);letter-spacing:-.01
 p.sub{margin:12px 0 0;color:var(--muted);font-size:18px;max-width:30em}
 a.open{display:inline-block;margin-top:24px;text-decoration:none}
 @media (max-width:900px){.top{margin:0 20px;grid-template-columns:1fr;justify-items:start}.top>span:empty{display:none}.seg{gap:20px;max-width:100%;overflow-x:auto}main{grid-template-columns:1fr;gap:44px;padding:28px 20px 44px}.rows div{grid-template-columns:110px 1fr}}
+.btn,.c-why .chip{transition:transform .18s cubic-bezier(.3,1.6,.5,1),background-color .15s,color .15s,opacity .15s}
+.btn:active:not([disabled]),.c-why .chip:active{transform:scale(.96);transition-duration:.06s}
+.seg button{transition:color .15s,box-shadow .15s}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (prefers-reduced-motion:reduce){.btn:active,.c-why .chip:active{transform:none}}
 """##
     static let shellJS = ##"""
 const SW=(()=>{

@@ -329,9 +329,10 @@ struct DayPicker: View {
                         .foregroundStyle(on ? Color.onInk : Color.primary)
                         .frame(width: 26, height: 26)
                         .background(Circle().fill(on ? Color.ink : Color.surface))
+                        .animation(.easeOut(duration: 0.15), value: on)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressButtonStyle())
                 .accessibilityLabel(name)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }

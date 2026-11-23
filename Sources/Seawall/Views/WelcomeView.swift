@@ -158,9 +158,10 @@ struct WelcomeView: View {
             .padding(.horizontal, 10)
             .frame(height: 38)
             .background(RoundedRectangle(cornerRadius: Radius.control, style: .continuous).fill(on ? Color.ink : Color.surface))
+            .animation(.easeOut(duration: 0.15), value: on)
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressButtonStyle())
         .help(help)
         .accessibilityLabel(title)
         .accessibilityAddTraits(on ? .isSelected : [])
