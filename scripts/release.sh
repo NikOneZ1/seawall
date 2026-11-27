@@ -3,6 +3,10 @@
 # Seawall-<version>.zip plus an appcast.xml listing it.
 #
 #   scripts/release.sh 1.0.0
+#   VERIFY_ONLY=1 scripts/release.sh   # build + checks only: no notarization, zip, DMG or appcast
+#
+# The app is universal (arm64 + x86_64); scripts/verify-build.sh checks that, and that it is
+# fresh, before anything is notarized or packaged.
 #
 # Settings, from the environment (each missing one skips its step and says so):
 #   SIGN_IDENTITY        "Developer ID Application: Name (TEAMID)". Without it the build is
@@ -22,7 +26,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-VERSION="${1:?Usage: scripts/release.sh <version>, e.g. 1.0.0}"
+VERIFY_ONLY="${VERIFY_ONLY:-0}"
+if [[ "$VERIFY_ONLY" == "1" ]]; then
+    VERSION="${1:-}"
+else
+    VERSION="${1:?Usage: scripts/release.sh <version>, e.g. 1.0.0}"
+fi
 BUILD="$(git rev-list --count HEAD)"
 APP="build/Seawall.app"
 DIST="dist"
@@ -35,7 +44,15 @@ if [[ -n "$(git status --porcelain)" ]]; then
     echo "⚠︎ The working tree has uncommitted changes; this release won't match a commit."
 fi
 
-VERSION="$VERSION" BUILD="$BUILD" ./scripts/build-app.sh
+BUILD_START=$(date +%s)
+CONFIG=release VERSION="$VERSION" BUILD="$BUILD" ./scripts/build-app.sh
+# Nothing gets notarized or packaged unless the app is from this build and runs on both archs.
+REQUIRE_ARCHS="arm64 x86_64" ./scripts/verify-build.sh "$APP" "$BUILD_START"
+
+if [[ "$VERIFY_ONLY" == "1" ]]; then
+    echo "VERIFY_ONLY: $APP built and checked; not notarizing, packaging or writing an appcast."
+    exit 0
+fi
 mkdir -p "$UPDATES"
 
 if [[ -n "${NOTARY_PROFILE:-}" && -n "${SIGN_IDENTITY:-}" ]]; then
